@@ -782,10 +782,24 @@ async function loadBuoyData(stationId) {
   $("station-header").style.display = "none";
 
   try {
-    const url  = `https://www.ndbc.noaa.gov/data/realtime2/${stationId}.txt`;
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`NOAA returned ${resp.status}`);
-    const text    = await resp.text();
+    // NOAA NDBC doesn't set CORS headers, so we route through a proxy.
+    // Two proxies are tried in order so the app still works if one is down.
+    const noaaUrl = `https://www.ndbc.noaa.gov/data/realtime2/${stationId}.txt`;
+    const proxies = [
+      u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    ];
+
+    let text = null;
+    let lastErr = "All proxies failed";
+    for (const makeUrl of proxies) {
+      try {
+        const resp = await fetch(makeUrl(noaaUrl));
+        if (resp.ok) { text = await resp.text(); break; }
+        lastErr = `HTTP ${resp.status}`;
+      } catch (e) { lastErr = e.message; }
+    }
+    if (text === null) throw new Error(lastErr);
     const records = parseNdbcTxt(text);
     const buoy    = BUOYS.find(b => b.id === stationId);
 
