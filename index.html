@@ -460,6 +460,109 @@
 
 <script>
 /* ════════════════════════════════════════════════
+   Buoy list (static — no backend required)
+══════════════════════════════════════════════════ */
+const BUOYS = [
+  // West Coast
+  { id: "46026", name: "San Francisco",      state: "CA", region: "West Coast",     lat: 37.759,  lon: -122.833 },
+  { id: "46025", name: "Santa Monica Basin", state: "CA", region: "West Coast",     lat: 33.749,  lon: -119.053 },
+  { id: "46042", name: "Monterey",           state: "CA", region: "West Coast",     lat: 36.785,  lon: -122.469 },
+  { id: "46047", name: "Point Arena",        state: "CA", region: "West Coast",     lat: 38.479,  lon: -123.476 },
+  { id: "46028", name: "Point Conception",   state: "CA", region: "West Coast",     lat: 34.902,  lon: -121.884 },
+  { id: "46219", name: "Harvest Platform",   state: "CA", region: "West Coast",     lat: 34.447,  lon: -120.782 },
+  { id: "46087", name: "Neah Bay",           state: "WA", region: "West Coast",     lat: 48.493,  lon: -124.728 },
+  { id: "46089", name: "Tillamook",          state: "OR", region: "West Coast",     lat: 45.774,  lon: -125.773 },
+  { id: "46029", name: "Columbia River Bar", state: "OR", region: "West Coast",     lat: 46.144,  lon: -124.512 },
+  // East Coast
+  { id: "44025", name: "New Jersey",         state: "NJ", region: "East Coast",     lat: 40.251,  lon: -73.166  },
+  { id: "44013", name: "Boston",             state: "MA", region: "East Coast",     lat: 42.346,  lon: -70.651  },
+  { id: "44017", name: "Montauk Point",      state: "NY", region: "East Coast",     lat: 40.694,  lon: -72.046  },
+  { id: "44008", name: "Nantucket",          state: "MA", region: "East Coast",     lat: 40.502,  lon: -69.247  },
+  { id: "41047", name: "Cape Hatteras",      state: "NC", region: "East Coast",     lat: 27.519,  lon: -71.494  },
+  { id: "41048", name: "West Bermuda",       state: "NC", region: "East Coast",     lat: 31.980,  lon: -69.591  },
+  // Gulf of Mexico
+  { id: "42001", name: "Gulf East",          state: "MS", region: "Gulf of Mexico", lat: 25.888,  lon: -89.658  },
+  { id: "42039", name: "Gulf West",          state: "TX", region: "Gulf of Mexico", lat: 28.789,  lon: -86.006  },
+  // Hawaii
+  { id: "51001", name: "Northwest Hawaii",   state: "HI", region: "Hawaii",         lat: 23.445,  lon: -162.279 },
+  { id: "51004", name: "Southeast Hawaii",   state: "HI", region: "Hawaii",         lat: 17.525,  lon: -152.382 },
+  // Great Lakes
+  { id: "45007", name: "Lake Michigan South",state: "WI", region: "Great Lakes",    lat: 42.674,  lon: -87.025  },
+  { id: "45012", name: "Lake Erie",          state: "OH", region: "Great Lakes",    lat: 42.158,  lon: -81.351  },
+];
+
+/* ════════════════════════════════════════════════
+   NDBC text parser (ported from Python backend)
+══════════════════════════════════════════════════ */
+function degreesToCompass(deg) {
+  if (deg === null || deg === undefined) return "N/A";
+  const dirs = ["N","NNE","NE","ENE","E","ESE","SE","SSE",
+                "S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  return dirs[Math.round(deg / 22.5) % 16];
+}
+
+function parseNdbcTxt(text) {
+  const lines = text.trim().split("\n").filter(l => l.trim());
+  if (lines.length < 3) return [];
+
+  const header = lines[0].replace(/^#+\s*/, "").trim().split(/\s+/);
+  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
+
+  const records = [];
+  for (const line of lines.slice(2)) {
+    if (line.startsWith("#")) continue;
+    const parts = line.trim().split(/\s+/);
+    if (parts.length < 5) continue;
+
+    const dt = new Date(Date.UTC(
+      parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]),
+      parseInt(parts[3]), parseInt(parts[4])
+    ));
+    if (isNaN(dt.getTime()) || dt < cutoff) continue;
+
+    const idx = {};
+    header.forEach((h, i) => { idx[h] = i; });
+
+    const get = name => {
+      const i = idx[name];
+      if (i === undefined || i >= parts.length || parts[i] === "MM") return null;
+      const v = parseFloat(parts[i]);
+      return isNaN(v) ? null : v;
+    };
+
+    const wvht = get("WVHT");
+    const dpd  = get("DPD");
+    const mwd  = get("MWD");
+    const wspd = get("WSPD");
+    const wdir = get("WDIR");
+    const wtmp = get("WTMP");
+    const atmp = get("ATMP");
+
+    records.push({
+      timestamp:       dt.toISOString(),
+      wave_height:     wvht,
+      wave_height_ft:  wvht !== null ? Math.round(wvht * 3.28084 * 100) / 100 : null,
+      dominant_period: dpd,
+      avg_period:      get("APD"),
+      wave_direction:  mwd,
+      wave_dir_label:  degreesToCompass(mwd),
+      wind_direction:  wdir,
+      wind_dir_label:  degreesToCompass(wdir),
+      wind_speed:      wspd,
+      wind_speed_kt:   wspd !== null ? Math.round(wspd * 1.94384 * 10) / 10 : null,
+      wind_gust:       get("GST"),
+      water_temp_c:    wtmp,
+      water_temp_f:    wtmp !== null ? Math.round((wtmp * 9/5 + 32) * 10) / 10 : null,
+      air_temp_c:      atmp,
+      air_temp_f:      atmp !== null ? Math.round((atmp * 9/5 + 32) * 10) / 10 : null,
+      pressure:        get("PRES"),
+    });
+  }
+  records.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  return records;
+}
+
+/* ════════════════════════════════════════════════
    Utility helpers
 ══════════════════════════════════════════════════ */
 const $ = id => document.getElementById(id);
@@ -672,7 +775,6 @@ async function loadBuoyData(stationId) {
   loading = true;
 
   const btn = $("refreshBtn");
-  const icon = $("refreshIcon");
   btn.classList.add("spinning");
 
   $("placeholder").style.display = "none";
@@ -680,17 +782,24 @@ async function loadBuoyData(stationId) {
   $("station-header").style.display = "none";
 
   try {
-    const resp = await fetch(`/api/buoy/${stationId}`);
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({ error: "Unknown error" }));
-      throw new Error(err.error || `HTTP ${resp.status}`);
-    }
-    const data = await resp.json();
+    const url  = `https://www.ndbc.noaa.gov/data/realtime2/${stationId}.txt`;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`NOAA returned ${resp.status}`);
+    const text    = await resp.text();
+    const records = parseNdbcTxt(text);
+    const buoy    = BUOYS.find(b => b.id === stationId);
+
+    const data = {
+      station: stationId,
+      info:    buoy,
+      latest:  records.length ? records[records.length - 1] : null,
+      history: records,
+    };
+
     renderMetrics(data);
 
     // Rebuild chart (clear old one first)
     const chartArea = document.querySelector(".chart-container");
-    // Remove any stale "no-data" message
     const old = chartArea.querySelector(".no-data");
     if (old) old.remove();
     $("swellChart").style.display = "";
@@ -711,33 +820,26 @@ async function loadBuoyData(stationId) {
 /* ════════════════════════════════════════════════
    Populate buoy dropdown
 ══════════════════════════════════════════════════ */
-async function loadBuoyList() {
-  try {
-    const resp = await fetch("/api/buoys");
-    const buoys = await resp.json();
+function loadBuoyList() {
+  const sel = $("buoySelect");
 
-    const sel = $("buoySelect");
+  // Group by region
+  const regions = {};
+  for (const b of BUOYS) {
+    if (!regions[b.region]) regions[b.region] = [];
+    regions[b.region].push(b);
+  }
 
-    // Group by region
-    const regions = {};
-    for (const b of buoys) {
-      if (!regions[b.region]) regions[b.region] = [];
-      regions[b.region].push(b);
+  for (const [region, list] of Object.entries(regions)) {
+    const og = document.createElement("optgroup");
+    og.label = region;
+    for (const b of list) {
+      const opt = document.createElement("option");
+      opt.value       = b.id;
+      opt.textContent = `${b.name}, ${b.state} (${b.id})`;
+      og.appendChild(opt);
     }
-
-    for (const [region, list] of Object.entries(regions)) {
-      const og = document.createElement("optgroup");
-      og.label = region;
-      for (const b of list) {
-        const opt = document.createElement("option");
-        opt.value       = b.id;
-        opt.textContent = `${b.name}, ${b.state} (${b.id})`;
-        og.appendChild(opt);
-      }
-      sel.appendChild(og);
-    }
-  } catch (e) {
-    showToast("Could not load buoy list.");
+    sel.appendChild(og);
   }
 }
 
