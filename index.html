@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NOAA Buoy Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1b2a;
+      --card:      #112240;
+      --card2:     #0a1f3b;
+      --border:    #1e3a5f;
+      --accent:    #06b6d4;
+      --accent2:   #f97316;
+      --text:      #ccd6f6;
+      --muted:     #6b8caa;
+      --good:      #22c55e;
+      --warn:      #eab308;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ─────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, #0a1628 0%, #0d2240 50%, #0a1628 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .wave-icon {
+      font-size: 2rem;
+      line-height: 1;
+    }
+
+    .header-titles h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.02em;
+    }
+
+    .header-titles p {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.15rem;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-left: auto;
+      flex-wrap: wrap;
+    }
+
+    /* ── Select ──────────────────────────────── */
+    .select-wrapper {
+      position: relative;
+    }
+
+    select {
+      appearance: none;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.6rem 2.5rem 0.6rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      min-width: 260px;
+      transition: border-color 0.2s;
+    }
+
+    select:hover, select:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    .select-wrapper::after {
+      content: "▾";
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent);
+      pointer-events: none;
+      font-size: 0.9rem;
+    }
+
+    /* ── Buttons ─────────────────────────────── */
+    .btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.6rem 1.1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: border-color 0.2s, background 0.2s, color 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.spinning svg { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Main ────────────────────────────────── */
+    main { flex: 1; padding: 1.5rem 2rem; max-width: 1300px; width: 100%; margin: 0 auto; }
+
+    /* ── Placeholder / error ─────────────────── */
+    #placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 5rem 1rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    #placeholder .big-wave { font-size: 4rem; }
+    #placeholder h2 { color: var(--text); font-weight: 600; }
+
+    /* ── Station header ──────────────────────── */
+    #station-header {
+      display: none;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    #station-header h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    #station-header .meta {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: rgba(6,182,212,0.15);
+      border: 1px solid rgba(6,182,212,0.3);
+      color: var(--accent);
+      font-size: 0.75rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+    }
+
+    /* ── Metrics grid ────────────────────────── */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .metric-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+    }
+
+    .metric-card.period::before  { background: linear-gradient(90deg, var(--accent2), transparent); }
+    .metric-card.wind::before    { background: linear-gradient(90deg, #a78bfa, transparent); }
+    .metric-card.temp::before    { background: linear-gradient(90deg, #f43f5e, transparent); }
+    .metric-card.pressure::before{ background: linear-gradient(90deg, var(--good), transparent); }
+
+    .metric-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .metric-primary {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.1;
+    }
+
+    .metric-secondary {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+
+    /* ── Chart panel ─────────────────────────── */
+    .chart-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .chart-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .chart-panel-header h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .legend {
+      display: flex;
+      gap: 1.25rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 280px;
+    }
+
+    /* ── No data ─────────────────────────────── */
+    .no-data {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    /* ── Skeleton loader ─────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--card) 25%, var(--card2) 50%, var(--card) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 8px;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── Toast ───────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: #1e293b;
+      border: 1px solid #f43f5e;
+      color: #fca5a5;
+      padding: 0.7rem 1.2rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      max-width: 340px;
+      z-index: 100;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+    }
+
+    #toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ── Footer ──────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 0.9rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 640px) {
+      header { padding: 1rem; }
+      main   { padding: 1rem; }
+      .metrics-grid { grid-template-columns: 1fr 1fr; }
+      .header-controls { width: 100%; }
+      select { min-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">
+    <span class="wave-icon">🌊</span>
+    <div class="header-titles">
+      <h1>NOAA Buoy Dashboard</h1>
+      <p>Real-time swell &amp; ocean conditions</p>
+    </div>
+  </div>
+  <div class="header-controls">
+    <div class="select-wrapper">
+      <select id="buoySelect" aria-label="Select buoy">
+        <option value="">— Select a buoy —</option>
+      </select>
+    </div>
+    <button class="btn" id="refreshBtn" title="Refresh data" aria-label="Refresh">
+      <svg id="refreshIcon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      </svg>
+      Refresh
+    </button>
+  </div>
+</header>
+
+<main>
+  <!-- Placeholder -->
+  <div id="placeholder">
+    <div class="big-wave">🌊</div>
+    <h2>Select a buoy to view conditions</h2>
+    <p>Choose a NOAA weather buoy from the dropdown above to see real-time swell data and 48-hour history.</p>
+  </div>
+
+  <!-- Dashboard (hidden until a buoy is selected) -->
+  <div id="dashboard" style="display:none;">
+    <div id="station-header">
+      <div>
+        <h2 id="stationTitle"></h2>
+        <div class="meta">
+          <span id="stationId"></span>
+          <span id="stationCoords"></span>
+          <span id="lastUpdated"></span>
+        </div>
+      </div>
+      <span class="badge" id="regionBadge"></span>
+    </div>
+
+    <!-- Current conditions -->
+    <div class="metrics-grid" id="metricsGrid">
+      <div class="metric-card" id="card-wvht">
+        <div class="metric-label">Wave Height</div>
+        <div class="metric-primary" id="val-wvht">—</div>
+        <div class="metric-secondary" id="val-wvht-ft"></div>
+      </div>
+      <div class="metric-card period" id="card-dpd">
+        <div class="metric-label">Dominant Period</div>
+        <div class="metric-primary" id="val-dpd">—</div>
+        <div class="metric-secondary" id="val-apd"></div>
+      </div>
+      <div class="metric-card" id="card-mwd">
+        <div class="metric-label">Wave Direction</div>
+        <div class="metric-primary" id="val-mwd">—</div>
+        <div class="metric-secondary" id="val-mwd-deg"></div>
+      </div>
+      <div class="metric-card wind" id="card-wind">
+        <div class="metric-label">Wind Speed</div>
+        <div class="metric-primary" id="val-wspd">—</div>
+        <div class="metric-secondary" id="val-wdir"></div>
+      </div>
+      <div class="metric-card temp" id="card-wtmp">
+        <div class="metric-label">Water Temp</div>
+        <div class="metric-primary" id="val-wtmp">—</div>
+        <div class="metric-secondary" id="val-wtmp-f"></div>
+      </div>
+      <div class="metric-card pressure" id="card-pres">
+        <div class="metric-label">Pressure / Air Temp</div>
+        <div class="metric-primary" id="val-pres">—</div>
+        <div class="metric-secondary" id="val-atmp"></div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-panel">
+      <div class="chart-panel-header">
+        <h3>48-Hour History</h3>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#06b6d4"></div>
+            <span>Wave Height (m)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#f97316"></div>
+            <span>Dominant Period (s)</span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="swellChart"></canvas>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<footer>
+  Data sourced from <a href="https://www.ndbc.noaa.gov/" target="_blank" rel="noopener">NOAA National Data Buoy Center</a>.
+  Updates approximately every 30 minutes.
+</footer>
+
+<script>
+/* ════════════════════════════════════════════════
+   Utility helpers
+══════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+
+function fmt(val, unit, decimals = 1) {
+  return val !== null && val !== undefined ? `${val.toFixed(decimals)} ${unit}` : "N/A";
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 4000);
+}
+
+/* ════════════════════════════════════════════════
+   Chart
+══════════════════════════════════════════════════ */
+let chart = null;
+
+function buildChart(history) {
+  const canvas = $("swellChart");
+  const ctx    = canvas.getContext("2d");
+
+  const labels  = history.map(r => new Date(r.timestamp));
+  const heights = history.map(r => r.wave_height);
+  const periods = history.map(r => r.dominant_period);
+
+  const hasHeight = heights.some(v => v !== null);
+  const hasPeriod = periods.some(v => v !== null);
+
+  if (!hasHeight && !hasPeriod) {
+    canvas.style.display = "none";
+    canvas.insertAdjacentHTML("afterend", '<div class="no-data">No historical data available for this period.</div>');
+    return;
+  }
+
+  if (chart) { chart.destroy(); chart = null; }
+
+  chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Wave Height (m)",
+          data: heights,
+          borderColor: "#06b6d4",
+          backgroundColor: "rgba(6,182,212,0.1)",
+          borderWidth: 2,
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          tension: 0.3,
+          fill: true,
+          yAxisID: "yHeight",
+          spanGaps: true,
+        },
+        {
+          label: "Dominant Period (s)",
+          data: periods,
+          borderColor: "#f97316",
+          backgroundColor: "rgba(249,115,22,0.08)",
+          borderWidth: 2,
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          tension: 0.3,
+          fill: false,
+          yAxisID: "yPeriod",
+          spanGaps: true,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#1e3a5f",
+          borderColor: "#1e3a5f",
+          borderWidth: 1,
+          titleColor: "#ccd6f6",
+          bodyColor: "#8baabf",
+          padding: 10,
+          callbacks: {
+            title: items => {
+              const d = new Date(items[0].parsed.x);
+              return d.toLocaleString(undefined, {
+                month: "short", day: "numeric",
+                hour: "2-digit", minute: "2-digit",
+                timeZoneName: "short",
+              });
+            },
+            label: item => {
+              const unit = item.datasetIndex === 0 ? " m" : " s";
+              const val  = item.raw;
+              return val !== null ? `  ${item.dataset.label.split(" (")[0]}: ${val.toFixed(2)}${unit}` : null;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          type: "time",
+          time: {
+            unit: "hour",
+            displayFormats: { hour: "MMM d HH:mm" },
+            tooltipFormat: "MMM d, HH:mm",
+          },
+          grid:   { color: "rgba(255,255,255,0.05)" },
+          ticks:  { color: "#6b8caa", maxTicksLimit: 12, maxRotation: 0 },
+          border: { color: "#1e3a5f" },
+        },
+        yHeight: {
+          type: "linear",
+          position: "left",
+          title: { display: true, text: "Wave Height (m)", color: "#06b6d4", font: { size: 11 } },
+          grid:   { color: "rgba(255,255,255,0.05)" },
+          ticks:  { color: "#06b6d4" },
+          border: { color: "#1e3a5f" },
+          beginAtZero: true,
+        },
+        yPeriod: {
+          type: "linear",
+          position: "right",
+          title: { display: true, text: "Period (s)", color: "#f97316", font: { size: 11 } },
+          grid:   { drawOnChartArea: false },
+          ticks:  { color: "#f97316" },
+          border: { color: "#1e3a5f" },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+}
+
+/* ════════════════════════════════════════════════
+   Populate metrics
+══════════════════════════════════════════════════ */
+function renderMetrics(data) {
+  const l = data.latest;
+  const i = data.info;
+
+  // Station header
+  $("station-header").style.display = "flex";
+  $("stationTitle").textContent     = `${i.name}, ${i.state}`;
+  $("stationId").textContent        = `Station ${data.station}`;
+  $("stationCoords").textContent    = `${i.lat.toFixed(3)}°, ${i.lon.toFixed(3)}°`;
+  $("regionBadge").textContent      = i.region;
+
+  if (l) {
+    const ts = new Date(l.timestamp);
+    $("lastUpdated").textContent = `Updated ${ts.toLocaleString(undefined, {
+      month: "short", day: "numeric",
+      hour: "2-digit", minute: "2-digit", timeZoneName: "short",
+    })}`;
+
+    // Wave height
+    $("val-wvht").textContent    = l.wave_height    !== null ? `${l.wave_height.toFixed(2)} m` : "N/A";
+    $("val-wvht-ft").textContent = l.wave_height_ft !== null ? `${l.wave_height_ft.toFixed(1)} ft` : "";
+
+    // Period
+    $("val-dpd").textContent = l.dominant_period !== null ? `${l.dominant_period.toFixed(1)} s` : "N/A";
+    $("val-apd").textContent = l.avg_period      !== null ? `Avg: ${l.avg_period.toFixed(1)} s` : "";
+
+    // Wave direction
+    $("val-mwd").textContent     = l.wave_dir_label || "N/A";
+    $("val-mwd-deg").textContent = l.wave_direction !== null ? `${Math.round(l.wave_direction)}°` : "";
+
+    // Wind
+    const ktxt = l.wind_speed_kt !== null ? ` (${l.wind_speed_kt} kt)` : "";
+    $("val-wspd").textContent = l.wind_speed !== null ? `${l.wind_speed.toFixed(1)} m/s${ktxt}` : "N/A";
+    $("val-wdir").textContent = l.wind_dir_label
+      ? `From ${l.wind_dir_label}${l.wind_direction !== null ? " (" + Math.round(l.wind_direction) + "°)" : ""}`
+        + (l.wind_gust !== null ? ` · Gust ${l.wind_gust.toFixed(1)} m/s` : "")
+      : "";
+
+    // Water temp
+    $("val-wtmp").textContent   = l.water_temp_c !== null ? `${l.water_temp_c.toFixed(1)} °C` : "N/A";
+    $("val-wtmp-f").textContent = l.water_temp_f !== null ? `${l.water_temp_f.toFixed(1)} °F` : "";
+
+    // Pressure / air temp
+    $("val-pres").textContent = l.pressure  !== null ? `${l.pressure.toFixed(1)} hPa` : "N/A";
+    $("val-atmp").textContent = l.air_temp_c !== null
+      ? `Air ${l.air_temp_c.toFixed(1)} °C (${l.air_temp_f.toFixed(1)} °F)`
+      : "";
+  } else {
+    $("lastUpdated").textContent = "No recent data";
+    for (const id of ["val-wvht","val-wvht-ft","val-dpd","val-apd","val-mwd","val-mwd-deg",
+                       "val-wspd","val-wdir","val-wtmp","val-wtmp-f","val-pres","val-atmp"]) {
+      const el = $(id);
+      if (el) el.textContent = id.startsWith("val-wvht") || id.startsWith("val-dpd") ||
+                                id.startsWith("val-mwd") || id.startsWith("val-wspd") ||
+                                id.startsWith("val-wtmp") || id.startsWith("val-pres") ? "N/A" : "";
+    }
+  }
+}
+
+/* ════════════════════════════════════════════════
+   Data loading
+══════════════════════════════════════════════════ */
+let currentStation = null;
+let loading = false;
+
+async function loadBuoyData(stationId) {
+  if (loading) return;
+  loading = true;
+
+  const btn = $("refreshBtn");
+  const icon = $("refreshIcon");
+  btn.classList.add("spinning");
+
+  $("placeholder").style.display = "none";
+  $("dashboard").style.display   = "block";
+  $("station-header").style.display = "none";
+
+  try {
+    const resp = await fetch(`/api/buoy/${stationId}`);
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(err.error || `HTTP ${resp.status}`);
+    }
+    const data = await resp.json();
+    renderMetrics(data);
+
+    // Rebuild chart (clear old one first)
+    const chartArea = document.querySelector(".chart-container");
+    // Remove any stale "no-data" message
+    const old = chartArea.querySelector(".no-data");
+    if (old) old.remove();
+    $("swellChart").style.display = "";
+
+    buildChart(data.history);
+  } catch (err) {
+    showToast(`Failed to load data: ${err.message}`);
+    if (currentStation === null) {
+      $("placeholder").style.display = "flex";
+      $("dashboard").style.display   = "none";
+    }
+  } finally {
+    loading = false;
+    btn.classList.remove("spinning");
+  }
+}
+
+/* ════════════════════════════════════════════════
+   Populate buoy dropdown
+══════════════════════════════════════════════════ */
+async function loadBuoyList() {
+  try {
+    const resp = await fetch("/api/buoys");
+    const buoys = await resp.json();
+
+    const sel = $("buoySelect");
+
+    // Group by region
+    const regions = {};
+    for (const b of buoys) {
+      if (!regions[b.region]) regions[b.region] = [];
+      regions[b.region].push(b);
+    }
+
+    for (const [region, list] of Object.entries(regions)) {
+      const og = document.createElement("optgroup");
+      og.label = region;
+      for (const b of list) {
+        const opt = document.createElement("option");
+        opt.value       = b.id;
+        opt.textContent = `${b.name}, ${b.state} (${b.id})`;
+        og.appendChild(opt);
+      }
+      sel.appendChild(og);
+    }
+  } catch (e) {
+    showToast("Could not load buoy list.");
+  }
+}
+
+/* ════════════════════════════════════════════════
+   Event listeners
+══════════════════════════════════════════════════ */
+$("buoySelect").addEventListener("change", e => {
+  const id = e.target.value;
+  if (!id) return;
+  currentStation = id;
+  loadBuoyData(id);
+});
+
+$("refreshBtn").addEventListener("click", () => {
+  if (currentStation) loadBuoyData(currentStation);
+});
+
+/* ════════════════════════════════════════════════
+   Init
+══════════════════════════════════════════════════ */
+loadBuoyList();
+</script>
+</body>
+</html>
