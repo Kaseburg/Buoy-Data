@@ -7,27 +7,34 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Exo+2:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:        #09182b;
-      --bg-card:   #0e2240;
-      --bg-chart:  #0b1d35;
-      --border:    #18395e;
-      --text:      #d4eaf7;
-      --muted:     #537ea4;
-      --accent:    #1a7dc4;
-      --c1:        #3B9EE8;
-      --c2:        #F59E0B;
-      --c3:        #34D399;
-      --cw:        #C084FC;
+      --bg:        #06001a;
+      --bg-card:   #0d0030;
+      --bg-chart:  #080020;
+      --border:    #3a0060;
+      --text:      #f0e6ff;
+      --muted:     #9966cc;
+      --accent:    #FF2D78;
+      --c1:        #00F5FF;
+      --c2:        #FF2D78;
+      --c3:        #39FF14;
+      --cw:        #FFD600;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      background: var(--bg);
+      background-color: var(--bg);
+      /* Retro cyan grid */
+      background-image:
+        linear-gradient(rgba(0,245,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,245,255,0.035) 1px, transparent 1px);
+      background-size: 52px 52px;
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-family: 'Exo 2', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       min-height: 100vh;
       font-size: 14px;
       line-height: 1.5;
@@ -35,8 +42,9 @@
 
     /* ── Navbar ─────────────────────────────────────────────────────── */
     .navbar {
-      background: var(--bg-card);
-      border-bottom: 1px solid var(--border);
+      background: rgba(6, 0, 26, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0,245,255,0.12);
       padding: 10px 20px;
       display: flex;
       align-items: center;
@@ -46,16 +54,31 @@
       top: 0;
       z-index: 200;
     }
+    /* Neon rainbow underline on navbar */
+    .navbar::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #00F5FF 0%, #FF2D78 50%, #FFD600 100%);
+      opacity: .7;
+    }
 
     .brand {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text);
+      font-family: 'Righteous', cursive;
+      font-size: 22px;
+      font-weight: 400;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       white-space: nowrap;
       text-decoration: none;
+      /* Gradient text */
+      background: linear-gradient(135deg, #00F5FF 0%, #FF2D78 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 10px rgba(0,245,255,0.45));
     }
 
     .brand-wave {
@@ -65,13 +88,12 @@
     }
     .brand-wave span {
       display: block;
-      height: 2px;
+      height: 2.5px;
       border-radius: 2px;
-      background: var(--accent);
     }
-    .brand-wave span:nth-child(1) { width: 24px; transform: scaleX(0.8); transform-origin: left; }
-    .brand-wave span:nth-child(2) { width: 24px; }
-    .brand-wave span:nth-child(3) { width: 18px; transform: scaleX(0.7); transform-origin: left; }
+    .brand-wave span:nth-child(1) { width: 22px; background: #00F5FF; box-shadow: 0 0 6px #00F5FF; transform: scaleX(.75); transform-origin: left; }
+    .brand-wave span:nth-child(2) { width: 22px; background: #CC66FF; box-shadow: 0 0 6px #CC66FF; }
+    .brand-wave span:nth-child(3) { width: 16px; background: #FF2D78; box-shadow: 0 0 6px #FF2D78; transform: scaleX(.65); transform-origin: left; }
 
     .nav-controls {
       display: flex;
@@ -87,32 +109,46 @@
     }
 
     select, input[type="number"] {
-      background: var(--bg);
+      background: rgba(0,0,0,0.5);
       color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 6px;
+      border: 1px solid rgba(0,245,255,0.22);
+      border-radius: 4px;
       padding: 5px 9px;
       font-size: 13px;
+      font-family: inherit;
       cursor: pointer;
     }
-    select:focus, input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+    select:focus, input:focus {
+      outline: none;
+      border-color: #00F5FF;
+      box-shadow: 0 0 10px rgba(0,245,255,0.35);
+    }
+    select option { background: #0d0030; }
 
     .btn {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 6px 14px;
+      background: transparent;
+      color: #FF2D78;
+      border: 1.5px solid #FF2D78;
+      border-radius: 4px;
+      padding: 5px 14px;
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 700;
+      font-family: 'Exo 2', inherit;
+      text-transform: uppercase;
+      letter-spacing: .5px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      transition: opacity .15s;
+      text-shadow: 0 0 8px rgba(255,45,120,.7);
+      box-shadow: 0 0 12px rgba(255,45,120,.3), inset 0 0 12px rgba(255,45,120,.05);
+      transition: box-shadow .2s, background .2s;
     }
-    .btn:hover { opacity: .85; }
-    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn:hover {
+      background: rgba(255,45,120,.12);
+      box-shadow: 0 0 22px rgba(255,45,120,.6), inset 0 0 16px rgba(255,45,120,.1);
+    }
+    .btn:disabled { opacity: .35; cursor: not-allowed; }
 
     .custom-loc-row {
       display: none;
@@ -141,12 +177,13 @@
     .dot {
       width: 8px; height: 8px;
       border-radius: 50%;
-      background: #34D399;
+      background: #39FF14;
+      box-shadow: 0 0 8px #39FF14;
       flex-shrink: 0;
     }
-    .dot.spin { background: var(--accent); animation: blink 1s ease-in-out infinite; }
-    .dot.err  { background: #F87171; }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+    .dot.spin { background: #00F5FF; box-shadow: 0 0 10px #00F5FF; animation: blink 1s ease-in-out infinite; }
+    .dot.err  { background: #FF2D78; box-shadow: 0 0 10px #FF2D78; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
 
     /* ── Conditions grid ─────────────────────────────────────────────── */
     .cond-grid {
@@ -158,23 +195,27 @@
 
     .cond-card {
       background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-left: 3px solid var(--border);
-      border-radius: 8px;
+      border: 1px solid rgba(180,100,255,0.18);
+      border-left: 3px solid rgba(180,100,255,0.3);
+      border-radius: 6px;
       padding: 12px 14px;
+      transition: box-shadow .2s;
     }
-    .cond-card.c1 { border-left-color: var(--c1); }
-    .cond-card.c2 { border-left-color: var(--c2); }
-    .cond-card.c3 { border-left-color: var(--c3); }
-    .cond-card.cw { border-left-color: var(--cw); }
+    .cond-card:hover { box-shadow: 0 0 16px rgba(180,100,255,0.12); }
+
+    .cond-card.c1 { border-left-color: #00F5FF; box-shadow: -2px 0 14px rgba(0,245,255,0.18); }
+    .cond-card.c2 { border-left-color: #FF2D78; box-shadow: -2px 0 14px rgba(255,45,120,0.18); }
+    .cond-card.c3 { border-left-color: #39FF14; box-shadow: -2px 0 14px rgba(57,255,20,0.18); }
+    .cond-card.cw { border-left-color: #FFD600; box-shadow: -2px 0 14px rgba(255,214,0,0.18); }
 
     .cond-lbl {
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: .8px;
+      letter-spacing: 1px;
       color: var(--muted);
       margin-bottom: 5px;
+      font-family: 'Righteous', cursive;
     }
     .cond-val {
       font-size: 21px;
@@ -194,19 +235,21 @@
       flex-wrap: wrap;
       align-items: center;
       gap: 6px 18px;
-      padding: 9px 14px;
+      padding: 9px 16px;
       background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      border: 1px solid rgba(0,245,255,0.15);
+      border-radius: 6px;
       margin-bottom: 16px;
       font-size: 12px;
+      box-shadow: 0 0 20px rgba(0,245,255,0.04), inset 0 0 30px rgba(0,245,255,0.02);
     }
     .legend-hd {
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: .7px;
+      letter-spacing: 1px;
       color: var(--muted);
+      font-family: 'Righteous', cursive;
     }
     .legend-item {
       display: flex;
@@ -220,7 +263,12 @@
       border-radius: 2px;
       flex-shrink: 0;
     }
-    .legend-item.hidden-item { opacity: .38; text-decoration: line-through; }
+    /* Neon glow on each swatch */
+    #leg1 .legend-swatch { box-shadow: 0 0 6px #00F5FF; }
+    #leg2 .legend-swatch { box-shadow: 0 0 6px #FF2D78; }
+    #leg3 .legend-swatch { box-shadow: 0 0 6px #39FF14; }
+    #legW .legend-swatch { box-shadow: 0 0 6px #FFD600; }
+    .legend-item.hidden-item { opacity: .35; text-decoration: line-through; }
 
     /* ── Charts ──────────────────────────────────────────────────────── */
     .chart-section { margin-bottom: 18px; }
@@ -232,16 +280,25 @@
       padding: 0 2px;
       margin-bottom: 6px;
     }
-    .chart-title { font-size: 13px; font-weight: 600; }
-    .chart-unit  { font-size: 11px; color: var(--muted); }
+    .chart-title {
+      font-family: 'Righteous', cursive;
+      font-size: 14px;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #00F5FF;
+      text-shadow: 0 0 12px rgba(0,245,255,0.5);
+    }
+    .chart-unit { font-size: 11px; color: var(--muted); }
 
     .chart-box {
       background: var(--bg-chart);
-      border: 1px solid var(--border);
-      border-radius: 10px;
+      border: 1px solid rgba(0,245,255,0.12);
+      border-radius: 6px;
       padding: 14px 16px 10px;
       position: relative;
       height: 220px;
+      box-shadow: 0 0 24px rgba(0,245,255,0.04), inset 0 0 40px rgba(0,0,50,0.4);
     }
 
     .loading-overlay {
@@ -250,16 +307,17 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(9,24,43,.75);
-      border-radius: 10px;
+      background: rgba(6,0,26,.82);
+      border-radius: 6px;
       z-index: 10;
     }
     .spinner {
       width: 30px; height: 30px;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
+      border: 2.5px solid rgba(0,245,255,0.15);
+      border-top-color: #00F5FF;
       border-radius: 50%;
       animation: spin .7s linear infinite;
+      box-shadow: 0 0 14px rgba(0,245,255,0.3);
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -279,11 +337,11 @@
       padding: 18px;
       color: var(--muted);
       font-size: 11px;
-      border-top: 1px solid var(--border);
+      border-top: 1px solid rgba(0,245,255,0.1);
       margin-top: 8px;
     }
-    footer a { color: var(--accent); text-decoration: none; }
-    footer a:hover { text-decoration: underline; }
+    footer a { color: #00F5FF; text-decoration: none; }
+    footer a:hover { text-shadow: 0 0 8px #00F5FF; }
 
     /* ── Responsive ──────────────────────────────────────────────────── */
     @media (max-width: 540px) {
@@ -428,10 +486,10 @@ const LOCATIONS = {
 };
 
 const SWELLS = [
-  { key: 'swell1', label: 'Swell 1',    color: '#3B9EE8', legId: 'leg1' },
-  { key: 'swell2', label: 'Swell 2',    color: '#F59E0B', legId: 'leg2' },
-  { key: 'swell3', label: 'Swell 3',    color: '#34D399', legId: 'leg3' },
-  { key: 'wind',   label: 'Wind Waves', color: '#C084FC', legId: 'legW' },
+  { key: 'swell1', label: 'Swell 1',    color: '#00F5FF', legId: 'leg1' },
+  { key: 'swell2', label: 'Swell 2',    color: '#FF2D78', legId: 'leg2' },
+  { key: 'swell3', label: 'Swell 3',    color: '#39FF14', legId: 'leg3' },
+  { key: 'wind',   label: 'Wind Waves', color: '#FFD600', legId: 'legW' },
 ];
 
 const PAST_DAYS     = 2;
@@ -686,11 +744,13 @@ function ds(label, data, color) {
     label,
     data,
     borderColor:     color,
-    backgroundColor: color + '18',
-    borderWidth: 2,
+    backgroundColor: color + '20',
+    borderWidth: 2.5,
     pointRadius: 0,
     pointHoverRadius: 5,
     pointHoverBackgroundColor: color,
+    pointHoverBorderColor: '#fff',
+    pointHoverBorderWidth: 1,
     tension: 0.35,
     spanGaps: true,
     fill: false,
@@ -707,11 +767,11 @@ function baseOptions(nowStr, yExtra, tooltipLabel) {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor:  'rgba(8,20,38,0.95)',
-        borderColor:      '#18395e',
+        backgroundColor:  'rgba(6,0,26,0.97)',
+        borderColor:      'rgba(0,245,255,0.35)',
         borderWidth:      1,
-        titleColor:       '#d4eaf7',
-        bodyColor:        '#7fb8d8',
+        titleColor:       '#00F5FF',
+        bodyColor:        '#c0a0ff',
         padding:          10,
         callbacks: {
           title(ctx) {
@@ -735,16 +795,16 @@ function baseOptions(nowStr, yExtra, tooltipLabel) {
             type:        'line',
             xMin:        nowStr,
             xMax:        nowStr,
-            borderColor: 'rgba(255,255,255,.3)',
+            borderColor: 'rgba(255,45,120,.65)',
             borderWidth: 1.5,
-            borderDash:  [6, 5],
+            borderDash:  [5, 4],
             label: {
-              content:         'Now',
+              content:         'NOW',
               display:         true,
               position:        'start',
-              backgroundColor: 'rgba(255,255,255,.07)',
-              color:           'rgba(255,255,255,.55)',
-              font:            { size: 10, weight: 'normal' },
+              backgroundColor: 'rgba(255,45,120,.18)',
+              color:           '#FF2D78',
+              font:            { size: 9, weight: 'bold', family: "'Righteous', cursive" },
               padding:         { x: 5, y: 3 },
             },
           },
@@ -758,17 +818,17 @@ function baseOptions(nowStr, yExtra, tooltipLabel) {
           tooltipFormat: 'MMM d, HH:mm',
           displayFormats: { hour: 'MMM d HH:mm', day: 'MMM d' },
         },
-        grid:  { color: '#18395e' },
+        grid:  { color: 'rgba(100,0,180,0.28)' },
         ticks: {
-          color: '#537ea4',
+          color: '#9966cc',
           maxRotation: 0,
           autoSkip:    true,
           maxTicksLimit: 8,
         },
       },
       y: {
-        grid:  { color: '#18395e' },
-        ticks: { color: '#537ea4' },
+        grid:  { color: 'rgba(100,0,180,0.28)' },
+        ticks: { color: '#9966cc' },
         ...yExtra,
       },
     },
@@ -791,15 +851,15 @@ function buildCharts(d) {
 
   // ── Height chart ──────────────────────────────────────────────────────────
   const hDatasets = [];
-  if (availability.swell1) hDatasets.push(ds('Swell 1',    pts(times, d.s1h), '#3B9EE8'));
-  if (availability.swell2) hDatasets.push(ds('Swell 2',    pts(times, d.s2h), '#F59E0B'));
-  if (availability.swell3) hDatasets.push(ds('Swell 3',    pts(times, d.s3h), '#34D399'));
-  if (availability.wind)   hDatasets.push(ds('Wind Waves', pts(times, d.wwh), '#C084FC'));
+  if (availability.swell1) hDatasets.push(ds('Swell 1',    pts(times, d.s1h), '#00F5FF'));
+  if (availability.swell2) hDatasets.push(ds('Swell 2',    pts(times, d.s2h), '#FF2D78'));
+  if (availability.swell3) hDatasets.push(ds('Swell 3',    pts(times, d.s3h), '#39FF14'));
+  if (availability.wind)   hDatasets.push(ds('Wind Waves', pts(times, d.wwh), '#FFD600'));
 
   const hOpts = baseOptions(nowStr, {
     beginAtZero: true,
     ticks: {
-      color: '#537ea4',
+      color: '#9966cc',
       callback: v => `${v} ft`,
     },
   }, ctx => {
@@ -812,15 +872,15 @@ function buildCharts(d) {
 
   // ── Period chart ──────────────────────────────────────────────────────────
   const pDatasets = [];
-  if (availability.swell1) pDatasets.push(ds('Swell 1',    pts(times, d.s1p), '#3B9EE8'));
-  if (availability.swell2) pDatasets.push(ds('Swell 2',    pts(times, d.s2p), '#F59E0B'));
-  if (availability.swell3) pDatasets.push(ds('Swell 3',    pts(times, d.s3p), '#34D399'));
-  if (availability.wind)   pDatasets.push(ds('Wind Waves', pts(times, d.wwp), '#C084FC'));
+  if (availability.swell1) pDatasets.push(ds('Swell 1',    pts(times, d.s1p), '#00F5FF'));
+  if (availability.swell2) pDatasets.push(ds('Swell 2',    pts(times, d.s2p), '#FF2D78'));
+  if (availability.swell3) pDatasets.push(ds('Swell 3',    pts(times, d.s3p), '#39FF14'));
+  if (availability.wind)   pDatasets.push(ds('Wind Waves', pts(times, d.wwp), '#FFD600'));
 
   const pOpts = baseOptions(nowStr, {
     beginAtZero: true,
     ticks: {
-      color: '#537ea4',
+      color: '#9966cc',
       callback: v => `${v}s`,
     },
   }, ctx => {
@@ -833,10 +893,10 @@ function buildCharts(d) {
 
   // ── Direction chart ───────────────────────────────────────────────────────
   const dDatasets = [];
-  if (availability.swell1) dDatasets.push(ds('Swell 1',    pts(times, d.s1d), '#3B9EE8'));
-  if (availability.swell2) dDatasets.push(ds('Swell 2',    pts(times, d.s2d), '#F59E0B'));
-  if (availability.swell3) dDatasets.push(ds('Swell 3',    pts(times, d.s3d), '#34D399'));
-  if (availability.wind)   dDatasets.push(ds('Wind Waves', pts(times, d.wwd), '#C084FC'));
+  if (availability.swell1) dDatasets.push(ds('Swell 1',    pts(times, d.s1d), '#00F5FF'));
+  if (availability.swell2) dDatasets.push(ds('Swell 2',    pts(times, d.s2d), '#FF2D78'));
+  if (availability.swell3) dDatasets.push(ds('Swell 3',    pts(times, d.s3d), '#39FF14'));
+  if (availability.wind)   dDatasets.push(ds('Wind Waves', pts(times, d.wwd), '#FFD600'));
 
   const COMPASS_TICKS = { 0:'N', 45:'NE', 90:'E', 135:'SE', 180:'S', 225:'SW', 270:'W', 315:'NW', 360:'N' };
 
@@ -844,7 +904,7 @@ function buildCharts(d) {
     min: 0,
     max: 360,
     ticks: {
-      color: '#537ea4',
+      color: '#9966cc',
       stepSize: 45,
       callback: v => COMPASS_TICKS[v] !== undefined ? `${COMPASS_TICKS[v]} ${v}°` : `${v}°`,
     },
