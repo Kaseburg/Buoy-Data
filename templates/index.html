@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buoy Swell Data</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <!-- Chart.js + date adapter -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="header-title">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M2 12c1.5-3 4-4.5 6-4.5s4.5 1.5 6 1.5 4.5-1.5 6-4.5"/>
+      <path d="M2 17c1.5-3 4-4.5 6-4.5s4.5 1.5 6 1.5 4.5-1.5 6-4.5"/>
+    </svg>
+    <h1>Buoy Swell Data</h1>
+  </div>
+  <div class="controls">
+    <select id="station-select" title="Station">
+      {% for s in stations %}
+      <option value="{{ s.id }}" {% if s.id == '46026' %}selected{% endif %}>
+        {{ s.name }} ({{ s.id }})
+      </option>
+      {% endfor %}
+    </select>
+    <select id="hours-select" title="Time window">
+      <option value="24">24 hours</option>
+      <option value="48">48 hours</option>
+      <option value="72" selected>72 hours</option>
+      <option value="120">5 days</option>
+      <option value="168">7 days</option>
+    </select>
+    <button id="refresh-btn">&#8635; Refresh</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- Status bar -->
+  <div id="status-bar" class="status-bar hidden"></div>
+
+  <!-- Current conditions -->
+  <section id="conditions-section">
+    <h2 class="section-title" id="station-heading">Loading…</h2>
+    <div id="conditions-panel" class="conditions-panel">
+      <div class="condition-card skeleton"></div>
+      <div class="condition-card skeleton"></div>
+      <div class="condition-card skeleton"></div>
+      <div class="condition-card skeleton"></div>
+      <div class="condition-card skeleton"></div>
+      <div class="condition-card skeleton"></div>
+      <div class="condition-card skeleton"></div>
+      <div class="condition-card skeleton"></div>
+    </div>
+  </section>
+
+  <!-- Swell legend -->
+  <section id="legend-section" class="hidden">
+    <div id="swell-legend" class="swell-legend"></div>
+  </section>
+
+  <!-- Three charts -->
+  <section id="charts-section">
+    <div class="chart-wrapper" id="chart-height-wrap">
+      <div class="chart-header">
+        <span class="chart-title">Swell Height</span>
+        <span class="chart-unit">feet</span>
+      </div>
+      <div class="chart-canvas-container">
+        <canvas id="height-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-wrapper" id="chart-period-wrap">
+      <div class="chart-header">
+        <span class="chart-title">Swell Period</span>
+        <span class="chart-unit">seconds</span>
+      </div>
+      <div class="chart-canvas-container">
+        <canvas id="period-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-wrapper" id="chart-dir-wrap">
+      <div class="chart-header">
+        <span class="chart-title">Swell Direction</span>
+        <span class="chart-unit">degrees (coming from)</span>
+      </div>
+      <div class="chart-canvas-container">
+        <canvas id="direction-chart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    Data from <a href="https://www.ndbc.noaa.gov/" target="_blank" rel="noopener">NOAA NDBC</a>.
+    Spectral swell tracking with Hungarian assignment.
+    Heights in ft &nbsp;|&nbsp; Temperatures in °F &nbsp;|&nbsp; Wind in mph.
+  </footer>
+
+</main>
+
+<script src="/static/js/charts.js"></script>
+</body>
+</html>
