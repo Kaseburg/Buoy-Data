@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buoy Data — Swell Charts</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Exo+2:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #06001a;
+      --bg-card:   #0d0030;
+      --bg-chart:  #080020;
+      --border:    #3a0060;
+      --text:      #f0e6ff;
+      --muted:     #9966cc;
+      --accent:    #FF2D78;
+      --c1:        #00F5FF;
+      --c2:        #FF2D78;
+      --c3:        #39FF14;
+      --cw:        #FFD600;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      /* Retro cyan grid */
+      background-image:
+        linear-gradient(rgba(0,245,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,245,255,0.035) 1px, transparent 1px);
+      background-size: 52px 52px;
+      color: var(--text);
+      font-family: 'Exo 2', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ── Navbar ─────────────────────────────────────────────────────── */
+    .navbar {
+      background: rgba(6, 0, 26, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0,245,255,0.12);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+    }
+    /* Neon rainbow underline on navbar */
+    .navbar::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #00F5FF 0%, #FF2D78 50%, #FFD600 100%);
+      opacity: .7;
+    }
+
+    .brand {
+      font-family: 'Righteous', cursive;
+      font-size: 22px;
+      font-weight: 400;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      white-space: nowrap;
+      text-decoration: none;
+      /* Gradient text */
+      background: linear-gradient(135deg, #00F5FF 0%, #FF2D78 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 10px rgba(0,245,255,0.45));
+    }
+
+    .brand-wave {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .brand-wave span {
+      display: block;
+      height: 2.5px;
+      border-radius: 2px;
+    }
+    .brand-wave span:nth-child(1) { width: 22px; background: #00F5FF; box-shadow: 0 0 6px #00F5FF; transform: scaleX(.75); transform-origin: left; }
+    .brand-wave span:nth-child(2) { width: 22px; background: #CC66FF; box-shadow: 0 0 6px #CC66FF; }
+    .brand-wave span:nth-child(3) { width: 16px; background: #FF2D78; box-shadow: 0 0 6px #FF2D78; transform: scaleX(.65); transform-origin: left; }
+
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-left: auto;
+    }
+
+    .nav-label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    select, input[type="number"] {
+      background: rgba(0,0,0,0.5);
+      color: var(--text);
+      border: 1px solid rgba(0,245,255,0.22);
+      border-radius: 4px;
+      padding: 5px 9px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    select:focus, input:focus {
+      outline: none;
+      border-color: #00F5FF;
+      box-shadow: 0 0 10px rgba(0,245,255,0.35);
+    }
+    select option { background: #0d0030; }
+
+    .btn {
+      background: transparent;
+      color: #FF2D78;
+      border: 1.5px solid #FF2D78;
+      border-radius: 4px;
+      padding: 5px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: 'Exo 2', inherit;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-shadow: 0 0 8px rgba(255,45,120,.7);
+      box-shadow: 0 0 12px rgba(255,45,120,.3), inset 0 0 12px rgba(255,45,120,.05);
+      transition: box-shadow .2s, background .2s;
+    }
+    .btn:hover {
+      background: rgba(255,45,120,.12);
+      box-shadow: 0 0 22px rgba(255,45,120,.6), inset 0 0 16px rgba(255,45,120,.1);
+    }
+    .btn:disabled { opacity: .35; cursor: not-allowed; }
+
+    .custom-loc-row {
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+    .custom-loc-row.show { display: flex; }
+    .custom-loc-row input { width: 90px; }
+
+    /* ── Main ────────────────────────────────────────────────────────── */
+    .main {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 20px 18px 32px;
+    }
+
+    /* ── Status bar ──────────────────────────────────────────────────── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 18px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #39FF14;
+      box-shadow: 0 0 8px #39FF14;
+      flex-shrink: 0;
+    }
+    .dot.spin { background: #00F5FF; box-shadow: 0 0 10px #00F5FF; animation: blink 1s ease-in-out infinite; }
+    .dot.err  { background: #FF2D78; box-shadow: 0 0 10px #FF2D78; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+    /* ── Conditions grid ─────────────────────────────────────────────── */
+    .cond-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .cond-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(180,100,255,0.18);
+      border-left: 3px solid rgba(180,100,255,0.3);
+      border-radius: 6px;
+      padding: 12px 14px;
+      transition: box-shadow .2s;
+    }
+    .cond-card:hover { box-shadow: 0 0 16px rgba(180,100,255,0.12); }
+
+    .cond-card.c1 { border-left-color: #00F5FF; box-shadow: -2px 0 14px rgba(0,245,255,0.18); }
+    .cond-card.c2 { border-left-color: #FF2D78; box-shadow: -2px 0 14px rgba(255,45,120,0.18); }
+    .cond-card.c3 { border-left-color: #39FF14; box-shadow: -2px 0 14px rgba(57,255,20,0.18); }
+    .cond-card.cw { border-left-color: #FFD600; box-shadow: -2px 0 14px rgba(255,214,0,0.18); }
+
+    .cond-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 5px;
+      font-family: 'Righteous', cursive;
+    }
+    .cond-val {
+      font-size: 21px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.1;
+    }
+    .cond-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* ── Shared legend ───────────────────────────────────────────────── */
+    .legend-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 18px;
+      padding: 9px 16px;
+      background: var(--bg-card);
+      border: 1px solid rgba(0,245,255,0.15);
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      box-shadow: 0 0 20px rgba(0,245,255,0.04), inset 0 0 30px rgba(0,245,255,0.02);
+    }
+    .legend-hd {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      font-family: 'Righteous', cursive;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--text);
+    }
+    .legend-swatch {
+      width: 26px;
+      height: 3px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    /* Neon glow on each swatch */
+    #leg1 .legend-swatch { box-shadow: 0 0 6px #00F5FF; }
+    #leg2 .legend-swatch { box-shadow: 0 0 6px #FF2D78; }
+    #leg3 .legend-swatch { box-shadow: 0 0 6px #39FF14; }
+    #legW .legend-swatch { box-shadow: 0 0 6px #FFD600; }
+    .legend-item.hidden-item { opacity: .35; text-decoration: line-through; }
+
+    /* ── Charts ──────────────────────────────────────────────────────── */
+    .chart-section { margin-bottom: 18px; }
+
+    .chart-hdr {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 0 2px;
+      margin-bottom: 6px;
+    }
+    .chart-title {
+      font-family: 'Righteous', cursive;
+      font-size: 14px;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #00F5FF;
+      text-shadow: 0 0 12px rgba(0,245,255,0.5);
+    }
+    .chart-unit { font-size: 11px; color: var(--muted); }
+
+    .chart-box {
+      background: var(--bg-chart);
+      border: 1px solid rgba(0,245,255,0.12);
+      border-radius: 6px;
+      padding: 14px 16px 10px;
+      position: relative;
+      height: 220px;
+      box-shadow: 0 0 24px rgba(0,245,255,0.04), inset 0 0 40px rgba(0,0,50,0.4);
+    }
+
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(6,0,26,.82);
+      border-radius: 6px;
+      z-index: 10;
+    }
+    .spinner {
+      width: 30px; height: 30px;
+      border: 2.5px solid rgba(0,245,255,0.15);
+      border-top-color: #00F5FF;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      box-shadow: 0 0 14px rgba(0,245,255,0.3);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .chart-empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 18px;
+      color: var(--muted);
+      font-size: 11px;
+      border-top: 1px solid rgba(0,245,255,0.1);
+      margin-top: 8px;
+    }
+    footer a { color: #00F5FF; text-decoration: none; }
+    footer a:hover { text-shadow: 0 0 8px #00F5FF; }
+
+    /* ── Responsive ──────────────────────────────────────────────────── */
+    @media (max-width: 540px) {
+      .navbar { padding: 8px 12px; }
+      .main   { padding: 14px 10px 24px; }
+      .cond-val { font-size: 18px; }
+      .chart-box { height: 180px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navbar ──────────────────────────────────────────────────────────────── -->
+<nav class="navbar">
+  <a class="brand" href="#">
+    <div class="brand-wave">
+      <span></span><span></span><span></span>
+    </div>
+    Buoy Data
+  </a>
+
+  <div class="nav-controls">
+    <select id="locSel" aria-label="Location">
+      <option value="mavericks">Mavericks, CA</option>
+      <option value="ocean_beach">Ocean Beach, CA</option>
+      <option value="trestles">Trestles, CA</option>
+      <option value="huntington">Huntington Beach, CA</option>
+      <option value="outer_banks">Outer Banks, NC</option>
+      <option value="sebastian">Sebastian Inlet, FL</option>
+      <option value="pipe">Pipeline, HI</option>
+      <option value="custom">Custom…</option>
+    </select>
+
+    <div class="custom-loc-row" id="customRow">
+      <input type="number" id="cLat" placeholder="Lat" step="0.001" min="-90"  max="90"  aria-label="Latitude">
+      <input type="number" id="cLon" placeholder="Lon" step="0.001" min="-180" max="180" aria-label="Longitude">
+    </div>
+
+    <span class="nav-label">Forecast:</span>
+    <select id="daysSel" aria-label="Forecast days">
+      <option value="3">3 days</option>
+      <option value="7" selected>7 days</option>
+      <option value="10">10 days</option>
+    </select>
+
+    <button class="btn" id="refreshBtn" aria-label="Refresh data">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+      </svg>
+      Refresh
+    </button>
+  </div>
+</nav>
+
+<!-- ── Main ────────────────────────────────────────────────────────────────── -->
+<div class="main">
+
+  <div class="status-bar">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusTxt">Loading…</span>
+  </div>
+
+  <!-- Current conditions -->
+  <div class="cond-grid" id="condGrid"></div>
+
+  <!-- Shared legend -->
+  <div class="legend-bar" id="legendBar">
+    <span class="legend-hd">Legend</span>
+    <span class="legend-item" id="leg1">
+      <span class="legend-swatch" style="background:var(--c1)"></span>Swell 1
+    </span>
+    <span class="legend-item" id="leg2">
+      <span class="legend-swatch" style="background:var(--c2)"></span>Swell 2
+    </span>
+    <span class="legend-item" id="leg3">
+      <span class="legend-swatch" style="background:var(--c3)"></span>Swell 3
+    </span>
+    <span class="legend-item" id="legW">
+      <span class="legend-swatch" style="background:var(--cw)"></span>Wind Waves
+    </span>
+    <span style="margin-left:auto; font-size:11px; color:var(--muted)">
+      Times in UTC &nbsp;·&nbsp; Past 2 days + forecast
+    </span>
+  </div>
+
+  <!-- Chart 1: Swell Height -->
+  <div class="chart-section">
+    <div class="chart-hdr">
+      <span class="chart-title">Swell Height</span>
+      <span class="chart-unit">feet (ft)</span>
+    </div>
+    <div class="chart-box" id="hBox">
+      <canvas id="hChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 2: Swell Period -->
+  <div class="chart-section">
+    <div class="chart-hdr">
+      <span class="chart-title">Swell Period</span>
+      <span class="chart-unit">seconds (s)</span>
+    </div>
+    <div class="chart-box" id="pBox">
+      <canvas id="pChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 3: Swell Direction -->
+  <div class="chart-section">
+    <div class="chart-hdr">
+      <span class="chart-title">Swell Direction</span>
+      <span class="chart-unit">coming from (°)</span>
+    </div>
+    <div class="chart-box" id="dBox">
+      <canvas id="dChart"></canvas>
+    </div>
+  </div>
+
+</div><!-- .main -->
+
+<footer>
+  Marine data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo Marine API</a>
+  &nbsp;·&nbsp;
+  Weather from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo Forecast API</a>
+  &nbsp;·&nbsp;
+  Open-source, no key required
+</footer>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   CONFIG
+════════════════════════════════════════════════════════════════════════════ */
+const LOCATIONS = {
+  mavericks:   { name: 'Mavericks, CA',        lat:  37.4961, lon: -122.4984 },
+  ocean_beach: { name: 'Ocean Beach, CA',       lat:  32.7572, lon: -117.2556 },
+  trestles:    { name: 'Trestles, CA',          lat:  33.3811, lon: -117.5897 },
+  huntington:  { name: 'Huntington Beach, CA',  lat:  33.6553, lon: -118.0000 },
+  outer_banks: { name: 'Outer Banks, NC',       lat:  35.5585, lon:  -75.4665 },
+  sebastian:   { name: 'Sebastian Inlet, FL',   lat:  27.8628, lon:  -80.4399 },
+  pipe:        { name: 'Pipeline, HI',          lat:  21.6655, lon: -158.0508 },
+};
+
+const SWELLS = [
+  { key: 'swell1', label: 'Swell 1',    color: '#00F5FF', legId: 'leg1' },
+  { key: 'swell2', label: 'Swell 2',    color: '#FF2D78', legId: 'leg2' },
+  { key: 'swell3', label: 'Swell 3',    color: '#39FF14', legId: 'leg3' },
+  { key: 'wind',   label: 'Wind Waves', color: '#FFD600', legId: 'legW' },
+];
+
+const PAST_DAYS     = 2;
+const MARINE_URL    = 'https://marine-api.open-meteo.com/v1/marine';
+const FORECAST_URL  = 'https://api.open-meteo.com/v1/forecast';
+
+/* ════════════════════════════════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════════════════════════════════ */
+let charts = { h: null, p: null, d: null };
+
+/* ════════════════════════════════════════════════════════════════════════════
+   UTILITIES
+════════════════════════════════════════════════════════════════════════════ */
+const mToFt    = v => (v == null || isNaN(v)) ? null : +(v * 3.28084).toFixed(2);
+const kphToMph = v => (v == null || isNaN(v)) ? null : +(v * 0.621371).toFixed(1);
+const cToF     = v => (v == null || isNaN(v)) ? null : +((v * 9 / 5) + 32).toFixed(1);
+const hasData  = arr => Array.isArray(arr) && arr.some(v => v != null);
+const nowISO   = () => new Date().toISOString(); // UTC ISO, e.g. "2024-01-15T06:30:00.000Z"
+
+function degToCompass(deg) {
+  if (deg == null || isNaN(deg)) return '--';
+  const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return dirs[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16];
+}
+
+// Append 'Z' so browsers treat strings as UTC (Open-Meteo returns "YYYY-MM-DDTHH:mm" without offset)
+function utcTime(t) { return t.endsWith('Z') ? t : t + ':00Z'; }
+
+// Find index of first time >= now
+function nowIndex(times) {
+  const n = Date.now();
+  for (let i = 0; i < times.length; i++) {
+    if (new Date(utcTime(times[i])).getTime() >= n) return i;
+  }
+  return times.length - 1;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   API
+════════════════════════════════════════════════════════════════════════════ */
+async function fetchMarine(lat, lon, forecastDays) {
+  const vars = [
+    'wave_height','wave_period','wave_direction',
+    'swell_wave_height','swell_wave_period','swell_wave_direction',
+    'swell_wave_height_2','swell_wave_period_2','swell_wave_direction_2',
+    'swell_wave_height_3','swell_wave_period_3','swell_wave_direction_3',
+    'wind_wave_height','wind_wave_period','wind_wave_direction',
+    'sea_surface_temperature',
+  ].join(',');
+
+  const u = new URL(MARINE_URL);
+  u.searchParams.set('latitude',      lat);
+  u.searchParams.set('longitude',     lon);
+  u.searchParams.set('hourly',        vars);
+  u.searchParams.set('past_days',     PAST_DAYS);
+  u.searchParams.set('forecast_days', forecastDays);
+  u.searchParams.set('timezone',      'GMT');
+
+  const r = await fetch(u);
+  if (!r.ok) throw new Error(`Marine API ${r.status}`);
+  return r.json();
+}
+
+async function fetchWeather(lat, lon, forecastDays) {
+  const u = new URL(FORECAST_URL);
+  u.searchParams.set('latitude',         lat);
+  u.searchParams.set('longitude',        lon);
+  u.searchParams.set('hourly',           'temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m');
+  u.searchParams.set('past_days',        PAST_DAYS);
+  u.searchParams.set('forecast_days',    forecastDays);
+  u.searchParams.set('timezone',         'GMT');
+  u.searchParams.set('temperature_unit', 'fahrenheit');
+  u.searchParams.set('wind_speed_unit',  'mph');
+
+  const r = await fetch(u);
+  if (!r.ok) throw new Error(`Weather API ${r.status}`);
+  return r.json();
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DATA PROCESSING
+════════════════════════════════════════════════════════════════════════════ */
+function process(marine, weather) {
+  const m = marine.hourly;
+  const w = weather.hourly;
+  const times = m.time;
+  const ni    = nowIndex(times);
+
+  // Height series (meters → feet)
+  const s1h = m.swell_wave_height?.map(mToFt)   || null;
+  const s2h = m.swell_wave_height_2?.map(mToFt) || null;
+  const s3h = m.swell_wave_height_3?.map(mToFt) || null;
+  const wwh = m.wind_wave_height?.map(mToFt)    || null;
+  const wvht= m.wave_height?.map(mToFt)         || null;
+
+  // Period series (seconds, no conversion)
+  const s1p = m.swell_wave_period    || null;
+  const s2p = m.swell_wave_period_2  || null;
+  const s3p = m.swell_wave_period_3  || null;
+  const wwp = m.wind_wave_period     || null;
+  const wvp = m.wave_period          || null;
+
+  // Direction series (degrees, no conversion)
+  const s1d = m.swell_wave_direction   || null;
+  const s2d = m.swell_wave_direction_2 || null;
+  const s3d = m.swell_wave_direction_3 || null;
+  const wwd = m.wind_wave_direction    || null;
+
+  // Weather (already in imperial from API)
+  const sst     = m.sea_surface_temperature?.map(cToF) || null;
+  const airTemp = w.temperature_2m     || null;  // °F
+  const windSpd = w.wind_speed_10m     || null;  // mph
+  const windDir = w.wind_direction_10m || null;
+  const windGst = w.wind_gusts_10m     || null;  // mph
+
+  const cur = idx => ({
+    wvht:    wvht?.[idx],
+    wvp:     wvp?.[idx],
+    s1h:     s1h?.[idx],  s1p: s1p?.[idx],  s1d: s1d?.[idx],
+    s2h:     s2h?.[idx],  s2p: s2p?.[idx],  s2d: s2d?.[idx],
+    s3h:     s3h?.[idx],  s3p: s3p?.[idx],  s3d: s3d?.[idx],
+    wwh:     wwh?.[idx],  wwp: wwp?.[idx],  wwd: wwd?.[idx],
+    sst:     sst?.[idx],
+    airTemp: airTemp?.[idx],
+    windSpd: windSpd?.[idx],
+    windDir: windDir?.[idx],
+    windGst: windGst?.[idx],
+  });
+
+  return {
+    times, ni,
+    nowStr: utcTime(times[ni]),
+    s1h, s2h, s3h, wwh, wvht,
+    s1p, s2p, s3p, wwp, wvp,
+    s1d, s2d, s3d, wwd,
+    sst, airTemp, windSpd, windDir, windGst,
+    cur: cur(ni),
+    availability: {
+      swell1: hasData(s1h) || hasData(s1p) || hasData(s1d),
+      swell2: hasData(s2h) || hasData(s2p) || hasData(s2d),
+      swell3: hasData(s3h) || hasData(s3p) || hasData(s3d),
+      wind:   hasData(wwh) || hasData(wwp) || hasData(wwd),
+    },
+  };
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CONDITIONS PANEL
+════════════════════════════════════════════════════════════════════════════ */
+function renderConditions(d) {
+  const { cur, availability } = d;
+
+  function card(cls, label, value, sub) {
+    return `<div class="cond-card ${cls}">
+      <div class="cond-lbl">${label}</div>
+      <div class="cond-val">${value}</div>
+      ${sub ? `<div class="cond-sub">${sub}</div>` : ''}
+    </div>`;
+  }
+
+  function fh(v) { return v != null ? `${v.toFixed(1)} ft` : '--'; }
+  function fp(v) { return v != null ? `${v.toFixed(0)}s` : '--'; }
+  function fd(v) { return v != null ? `${degToCompass(v)} (${Math.round(v)}°)` : '--'; }
+
+  let html = '';
+
+  // Total
+  html += card('', 'Total Wave Height',
+    fh(cur.wvht),
+    cur.wvp != null ? `Avg period ${cur.wvp.toFixed(0)}s` : ''
+  );
+
+  // Swell 1
+  if (availability.swell1) {
+    html += card('c1', 'Swell 1',
+      fh(cur.s1h),
+      [cur.s1p != null ? fp(cur.s1p) : null, cur.s1d != null ? `from ${fd(cur.s1d)}` : null].filter(Boolean).join(' · ')
+    );
+  }
+
+  // Swell 2
+  if (availability.swell2) {
+    html += card('c2', 'Swell 2',
+      fh(cur.s2h),
+      [cur.s2p != null ? fp(cur.s2p) : null, cur.s2d != null ? `from ${fd(cur.s2d)}` : null].filter(Boolean).join(' · ')
+    );
+  }
+
+  // Swell 3
+  if (availability.swell3) {
+    html += card('c3', 'Swell 3',
+      fh(cur.s3h),
+      [cur.s3p != null ? fp(cur.s3p) : null, cur.s3d != null ? `from ${fd(cur.s3d)}` : null].filter(Boolean).join(' · ')
+    );
+  }
+
+  // Wind waves
+  if (availability.wind) {
+    html += card('cw', 'Wind Waves',
+      fh(cur.wwh),
+      [cur.wwp != null ? fp(cur.wwp) : null, cur.wwd != null ? `from ${degToCompass(cur.wwd)}` : null].filter(Boolean).join(' · ')
+    );
+  }
+
+  // Wind
+  html += card('', 'Wind',
+    cur.windSpd != null ? `${cur.windSpd.toFixed(0)} mph` : '--',
+    [
+      cur.windDir != null ? `from ${degToCompass(cur.windDir)}` : '',
+      cur.windGst != null ? `gusts ${cur.windGst.toFixed(0)} mph` : '',
+    ].filter(Boolean).join(' · ')
+  );
+
+  // Water temp
+  if (hasData(d.sst)) {
+    html += card('', 'Water Temp',
+      cur.sst != null ? `${cur.sst.toFixed(1)}°F` : '--', '');
+  }
+
+  // Air temp
+  html += card('', 'Air Temp',
+    cur.airTemp != null ? `${cur.airTemp.toFixed(1)}°F` : '--', '');
+
+  document.getElementById('condGrid').innerHTML = html;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LEGEND VISIBILITY
+════════════════════════════════════════════════════════════════════════════ */
+function updateLegend(avail) {
+  SWELLS.forEach(s => {
+    const el = document.getElementById(s.legId);
+    if (!el) return;
+    el.classList.toggle('hidden-item', !avail[s.key]);
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CHART BUILDING
+════════════════════════════════════════════════════════════════════════════ */
+
+// Convert raw array to [{x, y}] chart points using utcTime strings
+function pts(times, arr) {
+  if (!arr) return [];
+  return times.map((t, i) => ({ x: utcTime(t), y: arr[i] }));
+}
+
+// Build a dataset config
+function ds(label, data, color) {
+  return {
+    label,
+    data,
+    borderColor:     color,
+    backgroundColor: color + '20',
+    borderWidth: 2.5,
+    pointRadius: 0,
+    pointHoverRadius: 5,
+    pointHoverBackgroundColor: color,
+    pointHoverBorderColor: '#fff',
+    pointHoverBorderWidth: 1,
+    tension: 0.35,
+    spanGaps: true,
+    fill: false,
+  };
+}
+
+// Base chart options (returns new object each call)
+function baseOptions(nowStr, yExtra, tooltipLabel) {
+  return {
+    responsive:           true,
+    maintainAspectRatio:  false,
+    animation:            { duration: 400 },
+    interaction:          { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor:  'rgba(6,0,26,0.97)',
+        borderColor:      'rgba(0,245,255,0.35)',
+        borderWidth:      1,
+        titleColor:       '#00F5FF',
+        bodyColor:        '#c0a0ff',
+        padding:          10,
+        callbacks: {
+          title(ctx) {
+            if (!ctx.length) return '';
+            const raw = ctx[0].raw;
+            if (raw?.x) {
+              return new Date(raw.x).toLocaleString('en-US', {
+                timeZone: 'UTC',
+                weekday: 'short', month: 'short', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+              });
+            }
+            return ctx[0].label || '';
+          },
+          label: tooltipLabel,
+        },
+      },
+      annotation: {
+        annotations: {
+          nowLine: {
+            type:        'line',
+            xMin:        nowStr,
+            xMax:        nowStr,
+            borderColor: 'rgba(255,45,120,.65)',
+            borderWidth: 1.5,
+            borderDash:  [5, 4],
+            label: {
+              content:         'NOW',
+              display:         true,
+              position:        'start',
+              backgroundColor: 'rgba(255,45,120,.18)',
+              color:           '#FF2D78',
+              font:            { size: 9, weight: 'bold', family: "'Righteous', cursive" },
+              padding:         { x: 5, y: 3 },
+            },
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        type: 'time',
+        time: {
+          tooltipFormat: 'MMM d, HH:mm',
+          displayFormats: { hour: 'MMM d HH:mm', day: 'MMM d' },
+        },
+        grid:  { color: 'rgba(100,0,180,0.28)' },
+        ticks: {
+          color: '#9966cc',
+          maxRotation: 0,
+          autoSkip:    true,
+          maxTicksLimit: 8,
+        },
+      },
+      y: {
+        grid:  { color: 'rgba(100,0,180,0.28)' },
+        ticks: { color: '#9966cc' },
+        ...yExtra,
+      },
+    },
+  };
+}
+
+function makeChart(id, datasets, options) {
+  return new Chart(document.getElementById(id), {
+    type: 'line',
+    data: { datasets },
+    options,
+  });
+}
+
+function buildCharts(d) {
+  const { times, nowStr, availability } = d;
+
+  // Destroy old charts
+  Object.values(charts).forEach(c => c && c.destroy());
+
+  // ── Height chart ──────────────────────────────────────────────────────────
+  const hDatasets = [];
+  if (availability.swell1) hDatasets.push(ds('Swell 1',    pts(times, d.s1h), '#00F5FF'));
+  if (availability.swell2) hDatasets.push(ds('Swell 2',    pts(times, d.s2h), '#FF2D78'));
+  if (availability.swell3) hDatasets.push(ds('Swell 3',    pts(times, d.s3h), '#39FF14'));
+  if (availability.wind)   hDatasets.push(ds('Wind Waves', pts(times, d.wwh), '#FFD600'));
+
+  const hOpts = baseOptions(nowStr, {
+    beginAtZero: true,
+    ticks: {
+      color: '#9966cc',
+      callback: v => `${v} ft`,
+    },
+  }, ctx => {
+    const v = ctx.raw?.y;
+    if (v == null) return null;
+    return `${ctx.dataset.label}: ${v.toFixed(1)} ft`;
+  });
+
+  charts.h = makeChart('hChart', hDatasets, hOpts);
+
+  // ── Period chart ──────────────────────────────────────────────────────────
+  const pDatasets = [];
+  if (availability.swell1) pDatasets.push(ds('Swell 1',    pts(times, d.s1p), '#00F5FF'));
+  if (availability.swell2) pDatasets.push(ds('Swell 2',    pts(times, d.s2p), '#FF2D78'));
+  if (availability.swell3) pDatasets.push(ds('Swell 3',    pts(times, d.s3p), '#39FF14'));
+  if (availability.wind)   pDatasets.push(ds('Wind Waves', pts(times, d.wwp), '#FFD600'));
+
+  const pOpts = baseOptions(nowStr, {
+    beginAtZero: true,
+    ticks: {
+      color: '#9966cc',
+      callback: v => `${v}s`,
+    },
+  }, ctx => {
+    const v = ctx.raw?.y;
+    if (v == null) return null;
+    return `${ctx.dataset.label}: ${v.toFixed(0)}s`;
+  });
+
+  charts.p = makeChart('pChart', pDatasets, pOpts);
+
+  // ── Direction chart ───────────────────────────────────────────────────────
+  const dDatasets = [];
+  if (availability.swell1) dDatasets.push(ds('Swell 1',    pts(times, d.s1d), '#00F5FF'));
+  if (availability.swell2) dDatasets.push(ds('Swell 2',    pts(times, d.s2d), '#FF2D78'));
+  if (availability.swell3) dDatasets.push(ds('Swell 3',    pts(times, d.s3d), '#39FF14'));
+  if (availability.wind)   dDatasets.push(ds('Wind Waves', pts(times, d.wwd), '#FFD600'));
+
+  const COMPASS_TICKS = { 0:'N', 45:'NE', 90:'E', 135:'SE', 180:'S', 225:'SW', 270:'W', 315:'NW', 360:'N' };
+
+  const dOpts = baseOptions(nowStr, {
+    min: 0,
+    max: 360,
+    ticks: {
+      color: '#9966cc',
+      stepSize: 45,
+      callback: v => COMPASS_TICKS[v] !== undefined ? `${COMPASS_TICKS[v]} ${v}°` : `${v}°`,
+    },
+  }, ctx => {
+    const v = ctx.raw?.y;
+    if (v == null) return null;
+    const deg = Math.round(((v % 360) + 360) % 360);
+    return `${ctx.dataset.label}: ${deg}° (${degToCompass(deg)})`;
+  });
+
+  charts.d = makeChart('dChart', dDatasets, dOpts);
+
+  // Crosshair sync across all three charts
+  syncCrosshair([charts.h, charts.p, charts.d]);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CROSSHAIR SYNC
+════════════════════════════════════════════════════════════════════════════ */
+function syncCrosshair(chartList) {
+  chartList.forEach(source => {
+    const canvas = source.canvas;
+
+    canvas.addEventListener('mousemove', evt => {
+      const elements = source.getElementsAtEventForMode(evt, 'index', { intersect: false }, true);
+      if (!elements.length) return;
+      const idx = elements[0].index;
+
+      chartList.forEach(target => {
+        if (target === source) return;
+        const active = target.data.datasets.map((_, di) => ({ datasetIndex: di, index: idx }));
+        target.tooltip.setActiveElements(active, { x: 0, y: 0 });
+        target.update('none');
+      });
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      chartList.forEach(target => {
+        if (target === source) return;
+        target.tooltip.setActiveElements([], { x: 0, y: 0 });
+        target.update('none');
+      });
+    });
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LOADING / STATUS UI
+════════════════════════════════════════════════════════════════════════════ */
+function setLoading(on) {
+  const dot = document.getElementById('statusDot');
+  const btn = document.getElementById('refreshBtn');
+
+  dot.className = 'dot' + (on ? ' spin' : '');
+  btn.disabled  = on;
+
+  ['hBox','pBox','dBox'].forEach(id => {
+    const box = document.getElementById(id);
+    const existing = box.querySelector('.loading-overlay');
+    if (on && !existing) {
+      const ov = document.createElement('div');
+      ov.className = 'loading-overlay';
+      ov.innerHTML = '<div class="spinner"></div>';
+      box.appendChild(ov);
+    } else if (!on && existing) {
+      existing.remove();
+    }
+  });
+}
+
+function setStatus(ok, msg) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusTxt');
+  dot.className = 'dot' + (ok ? '' : ' err');
+  txt.textContent = msg;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   MAIN LOAD
+════════════════════════════════════════════════════════════════════════════ */
+async function load() {
+  const locKey = document.getElementById('locSel').value;
+  const days   = parseInt(document.getElementById('daysSel').value, 10);
+
+  let lat, lon, locName;
+
+  if (locKey === 'custom') {
+    lat = parseFloat(document.getElementById('cLat').value);
+    lon = parseFloat(document.getElementById('cLon').value);
+    if (isNaN(lat) || isNaN(lon)) {
+      setStatus(false, 'Enter valid lat/lon to load data');
+      return;
+    }
+    locName = `${lat.toFixed(3)}, ${lon.toFixed(3)}`;
+  } else {
+    ({ lat, lon, name: locName } = LOCATIONS[locKey]);
+  }
+
+  setLoading(true);
+  document.getElementById('statusTxt').textContent = `Loading ${locName}…`;
+
+  try {
+    const [marine, weather] = await Promise.all([
+      fetchMarine(lat, lon, days),
+      fetchWeather(lat, lon, days),
+    ]);
+
+    const data = process(marine, weather);
+
+    renderConditions(data);
+    updateLegend(data.availability);
+    buildCharts(data);
+
+    setStatus(true, `${locName} · Updated ${new Date().toLocaleTimeString()}`);
+  } catch (err) {
+    console.error(err);
+    setStatus(false, `Error: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   EVENT HANDLERS
+════════════════════════════════════════════════════════════════════════════ */
+document.getElementById('locSel').addEventListener('change', function () {
+  const customRow = document.getElementById('customRow');
+  if (this.value === 'custom') {
+    customRow.classList.add('show');
+  } else {
+    customRow.classList.remove('show');
+    load();
+  }
+});
+
+document.getElementById('refreshBtn').addEventListener('click', load);
+document.getElementById('daysSel').addEventListener('change', load);
+
+document.getElementById('cLat').addEventListener('change', () => {
+  if (document.getElementById('locSel').value === 'custom') load();
+});
+document.getElementById('cLon').addEventListener('change', () => {
+  if (document.getElementById('locSel').value === 'custom') load();
+});
+
+/* ════════════════════════════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════════════════════════════ */
+load();
+</script>
+</body>
+</html>
