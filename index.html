@@ -562,25 +562,34 @@ function nowIndex(times) {
    API
 ════════════════════════════════════════════════════════════════════════════ */
 async function fetchMarine(lat, lon, forecastDays) {
-  const vars = [
+  const waveVars = [
     'wave_height','wave_period','wave_direction',
     'swell_wave_height','swell_wave_period','swell_wave_direction',
     'swell_wave_height_2','swell_wave_period_2','swell_wave_direction_2',
     'swell_wave_height_3','swell_wave_period_3','swell_wave_direction_3',
     'wind_wave_height','wind_wave_period','wind_wave_direction',
-    'sea_surface_temperature',
-  ].join(',');
+  ];
 
-  const u = new URL(MARINE_URL);
-  u.searchParams.set('latitude',      lat);
-  u.searchParams.set('longitude',     lon);
-  u.searchParams.set('hourly',        vars);
-  u.searchParams.set('past_days',     PAST_DAYS);
-  u.searchParams.set('forecast_days', forecastDays);
-  u.searchParams.set('timezone',      'GMT');
+  function buildUrl(vars) {
+    const u = new URL(MARINE_URL);
+    u.searchParams.set('latitude',      lat);
+    u.searchParams.set('longitude',     lon);
+    u.searchParams.set('hourly',        vars.join(','));
+    u.searchParams.set('past_days',     PAST_DAYS);
+    u.searchParams.set('forecast_days', forecastDays);
+    u.searchParams.set('timezone',      'GMT');
+    return u;
+  }
 
-  const r = await fetch(u);
-  if (!r.ok) throw new Error(`Marine API ${r.status}`);
+  // Try with SST first; fall back without it if the API rejects it
+  let r = await fetch(buildUrl([...waveVars, 'sea_surface_temperature']));
+  if (!r.ok) {
+    r = await fetch(buildUrl(waveVars));
+    if (!r.ok) {
+      const errText = await r.text().catch(() => '');
+      throw new Error(`Marine API ${r.status}: ${errText}`);
+    }
+  }
   return r.json();
 }
 
