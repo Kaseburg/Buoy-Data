@@ -562,6 +562,14 @@ function nowIndex(times) {
    API
 ════════════════════════════════════════════════════════════════════════════ */
 async function fetchMarine(lat, lon, forecastDays) {
+  // Marine API does not support past_days; use explicit start/end dates instead
+  const now   = new Date();
+  const start = new Date(now);
+  start.setUTCDate(start.getUTCDate() - PAST_DAYS);
+  const end   = new Date(now);
+  end.setUTCDate(end.getUTCDate() + forecastDays);
+  const fmt   = d => d.toISOString().slice(0, 10);
+
   const waveVars = [
     'wave_height','wave_period','wave_direction',
     'swell_wave_height','swell_wave_period','swell_wave_direction',
@@ -572,12 +580,12 @@ async function fetchMarine(lat, lon, forecastDays) {
 
   function buildUrl(vars) {
     const u = new URL(MARINE_URL);
-    u.searchParams.set('latitude',      lat);
-    u.searchParams.set('longitude',     lon);
-    u.searchParams.set('hourly',        vars.join(','));
-    u.searchParams.set('past_days',     PAST_DAYS);
-    u.searchParams.set('forecast_days', forecastDays);
-    u.searchParams.set('timezone',      'GMT');
+    u.searchParams.set('latitude',   lat);
+    u.searchParams.set('longitude',  lon);
+    u.searchParams.set('hourly',     vars.join(','));
+    u.searchParams.set('start_date', fmt(start));
+    u.searchParams.set('end_date',   fmt(end));
+    u.searchParams.set('timezone',   'GMT');
     return u;
   }
 
