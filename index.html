@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Buoy Data — Swell Charts</title>
+  <title>Buoy Data — NOAA NDBC</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
@@ -29,7 +29,6 @@
 
     body {
       background-color: var(--bg);
-      /* Retro cyan grid */
       background-image:
         linear-gradient(rgba(0,245,255,0.035) 1px, transparent 1px),
         linear-gradient(90deg, rgba(0,245,255,0.035) 1px, transparent 1px);
@@ -55,7 +54,6 @@
       top: 0;
       z-index: 200;
     }
-    /* Neon rainbow underline on navbar */
     .navbar::after {
       content: '';
       position: absolute;
@@ -74,7 +72,6 @@
       gap: 10px;
       white-space: nowrap;
       text-decoration: none;
-      /* Gradient text */
       background: linear-gradient(135deg, #00F5FF 0%, #FF2D78 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -150,14 +147,6 @@
       box-shadow: 0 0 22px rgba(255,45,120,.6), inset 0 0 16px rgba(255,45,120,.1);
     }
     .btn:disabled { opacity: .35; cursor: not-allowed; }
-
-    .custom-loc-row {
-      display: none;
-      align-items: center;
-      gap: 6px;
-    }
-    .custom-loc-row.show { display: flex; }
-    .custom-loc-row input { width: 90px; }
 
     /* ── Main ────────────────────────────────────────────────────────── */
     .main {
@@ -367,27 +356,55 @@
   </a>
 
   <div class="nav-controls">
-    <select id="locSel" aria-label="Location">
-      <option value="mavericks">Mavericks, CA</option>
-      <option value="ocean_beach">Ocean Beach, CA</option>
-      <option value="trestles">Trestles, CA</option>
-      <option value="huntington">Huntington Beach, CA</option>
-      <option value="outer_banks">Outer Banks, NC</option>
-      <option value="sebastian">Sebastian Inlet, FL</option>
-      <option value="pipe">Pipeline, HI</option>
-      <option value="custom">Custom…</option>
+    <span class="nav-label">Buoy:</span>
+    <select id="buoySel" aria-label="Select buoy">
+      <optgroup label="── West Coast ──">
+        <option value="46026">46026 – San Francisco, CA</option>
+        <option value="46012">46012 – Half Moon Bay, CA</option>
+        <option value="46011">46011 – Santa Maria, CA</option>
+        <option value="46028">46028 – Cape San Martin, CA</option>
+        <option value="46047">46047 – Tanner Banks, CA</option>
+        <option value="46025">46025 – Santa Monica Basin, CA</option>
+        <option value="46054">46054 – W. Santa Barbara, CA</option>
+        <option value="46086">46086 – San Clemente Basin, CA</option>
+        <option value="46221">46221 – Santa Monica, CA</option>
+      </optgroup>
+      <optgroup label="── Pacific Northwest ──">
+        <option value="46041">46041 – Cape Elizabeth, WA</option>
+        <option value="46029">46029 – Columbia River Bar, OR</option>
+        <option value="46050">46050 – Stonewall Bank, OR</option>
+        <option value="46015">46015 – Port Orford, OR</option>
+      </optgroup>
+      <optgroup label="── Hawaii ──">
+        <option value="51001">51001 – NW Hawaii</option>
+        <option value="51002">51002 – SW Hawaii</option>
+        <option value="51003">51003 – W Hawaii</option>
+        <option value="51004">51004 – SE Hawaii</option>
+        <option value="51101">51101 – Northwestern HI</option>
+      </optgroup>
+      <optgroup label="── East Coast ──">
+        <option value="41025" selected>41025 – Diamond Shoals, NC</option>
+        <option value="41001">41001 – E Hatteras</option>
+        <option value="41002">41002 – S Hatteras</option>
+        <option value="44025">44025 – New York</option>
+        <option value="44017">44017 – Montauk, NY</option>
+        <option value="44013">44013 – Boston, MA</option>
+        <option value="44008">44008 – Nantucket, MA</option>
+        <option value="44060">44060 – Chesapeake Bay</option>
+      </optgroup>
+      <optgroup label="── Gulf of Mexico ──">
+        <option value="42036">42036 – W Gulf of Mexico</option>
+        <option value="42055">42055 – C Gulf of Mexico</option>
+        <option value="42001">42001 – Mid Gulf</option>
+      </optgroup>
     </select>
 
-    <div class="custom-loc-row" id="customRow">
-      <input type="number" id="cLat" placeholder="Lat" step="0.001" min="-90"  max="90"  aria-label="Latitude">
-      <input type="number" id="cLon" placeholder="Lon" step="0.001" min="-180" max="180" aria-label="Longitude">
-    </div>
-
-    <span class="nav-label">Forecast:</span>
-    <select id="daysSel" aria-label="Forecast days">
+    <span class="nav-label">Show:</span>
+    <select id="daysSel" aria-label="Days of history">
+      <option value="1">1 day</option>
       <option value="3">3 days</option>
       <option value="7" selected>7 days</option>
-      <option value="10">10 days</option>
+      <option value="14">14 days</option>
     </select>
 
     <button class="btn" id="refreshBtn" aria-label="Refresh data">
@@ -420,24 +437,24 @@
     <span class="legend-item" id="leg1">
       <span class="legend-swatch" style="background:var(--c1)"></span>Swell 1
     </span>
-    <span class="legend-item" id="leg2">
-      <span class="legend-swatch" style="background:var(--c2)"></span>Swell 2
+    <span class="legend-item" id="legDP">
+      <span class="legend-swatch" style="background:var(--c2)"></span>Dom. Period
     </span>
-    <span class="legend-item" id="leg3">
-      <span class="legend-swatch" style="background:var(--c3)"></span>Swell 3
+    <span class="legend-item" id="legAP">
+      <span class="legend-swatch" style="background:var(--c3)"></span>Avg Period
     </span>
-    <span class="legend-item" id="legW">
-      <span class="legend-swatch" style="background:var(--cw)"></span>Wind Waves
+    <span class="legend-item" id="legD">
+      <span class="legend-swatch" style="background:var(--cw)"></span>Wave Dir
     </span>
     <span style="margin-left:auto; font-size:11px; color:var(--muted)">
-      Times in UTC &nbsp;·&nbsp; Past 2 days + forecast
+      Times in UTC &nbsp;·&nbsp; Observed buoy data
     </span>
   </div>
 
-  <!-- Chart 1: Swell Height -->
+  <!-- Chart 1: Wave Height -->
   <div class="chart-section">
     <div class="chart-hdr">
-      <span class="chart-title">Swell Height</span>
+      <span class="chart-title">Wave Height</span>
       <span class="chart-unit">feet (ft)</span>
     </div>
     <div class="chart-box" id="hBox">
@@ -445,10 +462,10 @@
     </div>
   </div>
 
-  <!-- Chart 2: Swell Period -->
+  <!-- Chart 2: Wave Period -->
   <div class="chart-section">
     <div class="chart-hdr">
-      <span class="chart-title">Swell Period</span>
+      <span class="chart-title">Wave Period</span>
       <span class="chart-unit">seconds (s)</span>
     </div>
     <div class="chart-box" id="pBox">
@@ -456,10 +473,10 @@
     </div>
   </div>
 
-  <!-- Chart 3: Swell Direction -->
+  <!-- Chart 3: Wave Direction -->
   <div class="chart-section">
     <div class="chart-hdr">
-      <span class="chart-title">Swell Direction</span>
+      <span class="chart-title">Wave Direction</span>
       <span class="chart-unit">coming from (°)</span>
     </div>
     <div class="chart-box" id="dBox">
@@ -470,11 +487,9 @@
 </div><!-- .main -->
 
 <footer>
-  Marine data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo Marine API</a>
+  Real-time buoy data from <a href="https://www.ndbc.noaa.gov/" target="_blank" rel="noopener">NOAA National Data Buoy Center (NDBC)</a>
   &nbsp;·&nbsp;
-  Weather from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo Forecast API</a>
-  &nbsp;·&nbsp;
-  Open-source, no key required
+  Observed measurements updated hourly
 </footer>
 
 <script>
@@ -511,11 +526,9 @@ let charts = { h: null, p: null, d: null };
 /* ════════════════════════════════════════════════════════════════════════════
    UTILITIES
 ════════════════════════════════════════════════════════════════════════════ */
-const mToFt    = v => (v == null || isNaN(v)) ? null : +(v * 3.28084).toFixed(2);
-const kphToMph = v => (v == null || isNaN(v)) ? null : +(v * 0.621371).toFixed(1);
-const cToF     = v => (v == null || isNaN(v)) ? null : +((v * 9 / 5) + 32).toFixed(1);
-const hasData  = arr => Array.isArray(arr) && arr.some(v => v != null);
-const nowISO   = () => new Date().toISOString(); // UTC ISO, e.g. "2024-01-15T06:30:00.000Z"
+const mToFt    = v => (v == null) ? null : +(v * 3.28084).toFixed(2);
+const msToMph  = v => (v == null) ? null : +(v * 2.23694).toFixed(1);
+const cToF     = v => (v == null) ? null : +((v * 9 / 5) + 32).toFixed(1);
 
 function degToCompass(deg) {
   if (deg == null || isNaN(deg)) return '--';
@@ -523,30 +536,85 @@ function degToCompass(deg) {
   return dirs[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16];
 }
 
-// Append 'Z' so browsers treat strings as UTC (Open-Meteo returns "YYYY-MM-DDTHH:mm" without offset)
-function utcTime(t) { return t.endsWith('Z') ? t : t + ':00Z'; }
-
-// Find index of first time >= now
-function nowIndex(times) {
-  const n = Date.now();
-  for (let i = 0; i < times.length; i++) {
-    if (new Date(utcTime(times[i])).getTime() >= n) return i;
+/* ════════════════════════════════════════════════════════════════════════════
+   NDBC FETCH + PARSE
+════════════════════════════════════════════════════════════════════════════ */
+async function fetchNDBC(stationId) {
+  const url = `${NDBC_URL}${stationId}.txt`;
+  let resp;
+  try {
+    resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  } catch (e) {
+    // Retry via CORS proxy
+    resp = await fetch(`${CORS_PROXY}${encodeURIComponent(url)}`);
+    if (!resp.ok) throw new Error(`NDBC ${resp.status} for station ${stationId}`);
   }
-  return times.length - 1;
+  return resp.text();
+}
+
+function parseNDBC(text, limitDays) {
+  const lines = text.trim().split('\n');
+
+  // Identify header lines (start with #)
+  const dataLines = lines.filter(l => !l.trimStart().startsWith('#') && l.trim().length > 0);
+
+  const cutoff = Date.now() - limitDays * 86400 * 1000;
+
+  const rows = [];
+  for (const line of dataLines) {
+    const cols = line.trim().split(/\s+/);
+    if (cols.length < 15) continue;
+
+    // NDBC format: YY MM DD hh mm WDIR WSPD GST WVHT DPD APD MWD PRES ATMP WTMP ...
+    const yr = parseInt(cols[0]);
+    const year = yr < 100 ? (yr > 50 ? 1900 + yr : 2000 + yr) : yr;
+    const mo = cols[1].padStart(2,'0');
+    const dy = cols[2].padStart(2,'0');
+    const hh = cols[3].padStart(2,'0');
+    const mn = cols[4].padStart(2,'0');
+    const isoTime = `${year}-${mo}-${dy}T${hh}:${mn}:00Z`;
+    const ts = new Date(isoTime).getTime();
+
+    if (ts < cutoff) continue; // skip rows older than requested window
+
+    const p = v => (v === 'MM' || v === '999' || v === '9999' || v === '99' || v === '99.0') ? null : parseFloat(v);
+
+    rows.push({
+      time:  isoTime,
+      ts,
+      wdir:  p(cols[5]),   // deg
+      wspd:  p(cols[6]),   // m/s
+      gst:   p(cols[7]),   // m/s
+      wvht:  p(cols[8]),   // m  → convert to ft
+      dpd:   p(cols[9]),   // s
+      apd:   p(cols[10]),  // s
+      mwd:   p(cols[11]),  // deg
+      pres:  p(cols[12]),  // hPa
+      atmp:  p(cols[13]),  // °C → convert to °F
+      wtmp:  p(cols[14]),  // °C → convert to °F
+    });
+  }
+
+  // NDBC file is newest-first; reverse to oldest-first for charts
+  rows.reverse();
+  return rows;
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   API
+   BUILD CHART DATA
 ════════════════════════════════════════════════════════════════════════════ */
-async function fetchMarine(lat, lon, forecastDays) {
-  const vars = [
-    'wave_height','wave_period','wave_direction',
-    'swell_wave_height','swell_wave_period','swell_wave_direction',
-    'swell_wave_height_2','swell_wave_period_2','swell_wave_direction_2',
-    'swell_wave_height_3','swell_wave_period_3','swell_wave_direction_3',
-    'wind_wave_height','wind_wave_period','wind_wave_direction',
-    'sea_surface_temperature',
-  ].join(',');
+function buildData(rows) {
+  const times  = rows.map(r => r.time);
+  const wvhtFt = rows.map(r => mToFt(r.wvht));
+  const dpdS   = rows.map(r => r.dpd);
+  const apdS   = rows.map(r => r.apd);
+  const mwdDeg = rows.map(r => r.mwd);
+  const wspdMph= rows.map(r => msToMph(r.wspd));
+  const gstMph = rows.map(r => msToMph(r.gst));
+  const wdirDeg= rows.map(r => r.wdir);
+  const atmpF  = rows.map(r => cToF(r.atmp));
+  const wtmpF  = rows.map(r => cToF(r.wtmp));
 
   const u = new URL(MARINE_URL);
   u.searchParams.set('latitude',      lat);
@@ -651,7 +719,7 @@ function process(marine, weather) {
    CONDITIONS PANEL
 ════════════════════════════════════════════════════════════════════════════ */
 function renderConditions(d) {
-  const { cur, availability } = d;
+  const c = d.cur;
 
   function card(cls, label, value, sub) {
     return `<div class="cond-card ${cls}">
@@ -661,9 +729,10 @@ function renderConditions(d) {
     </div>`;
   }
 
-  function fh(v) { return v != null ? `${v.toFixed(1)} ft` : '--'; }
-  function fp(v) { return v != null ? `${v.toFixed(0)}s` : '--'; }
-  function fd(v) { return v != null ? `${degToCompass(v)} (${Math.round(v)}°)` : '--'; }
+  const fh = v => v != null ? `${v.toFixed(1)} ft`  : '--';
+  const fp = v => v != null ? `${v.toFixed(0)}s`     : '--';
+  const ft = v => v != null ? `${v.toFixed(1)}°F`    : '--';
+  const fw = v => v != null ? `${v.toFixed(0)} mph`  : '--';
 
   let html = '';
 
@@ -673,82 +742,46 @@ function renderConditions(d) {
     [cur.wvp != null ? fp(cur.wvp) : null, cur.wvd != null ? `from ${fd(cur.wvd)}` : null].filter(Boolean).join(' · ')
   );
 
-  // Swell 1
-  if (availability.swell1) {
-    html += card('c1', 'Swell 1',
-      fh(cur.s1h),
-      [cur.s1p != null ? fp(cur.s1p) : null, cur.s1d != null ? `from ${fd(cur.s1d)}` : null].filter(Boolean).join(' · ')
-    );
+  // Dominant period
+  if (c.dpdS != null) {
+    html += card('c2', 'Dom. Period', fp(c.dpdS),
+      c.apdS != null ? `Avg ${fp(c.apdS)}` : '');
   }
 
-  // Swell 2
-  if (availability.swell2) {
-    html += card('c2', 'Swell 2',
-      fh(cur.s2h),
-      [cur.s2p != null ? fp(cur.s2p) : null, cur.s2d != null ? `from ${fd(cur.s2d)}` : null].filter(Boolean).join(' · ')
-    );
-  }
-
-  // Swell 3
-  if (availability.swell3) {
-    html += card('c3', 'Swell 3',
-      fh(cur.s3h),
-      [cur.s3p != null ? fp(cur.s3p) : null, cur.s3d != null ? `from ${fd(cur.s3d)}` : null].filter(Boolean).join(' · ')
-    );
-  }
-
-  // Wind waves
-  if (availability.wind) {
-    html += card('cw', 'Wind Waves',
-      fh(cur.wwh),
-      [cur.wwp != null ? fp(cur.wwp) : null, cur.wwd != null ? `from ${degToCompass(cur.wwd)}` : null].filter(Boolean).join(' · ')
-    );
+  // Wave direction
+  if (c.mwdDeg != null) {
+    html += card('cw', 'Wave Dir', degToCompass(c.mwdDeg),
+      `${Math.round(c.mwdDeg)}° from`);
   }
 
   // Wind
-  html += card('', 'Wind',
-    cur.windSpd != null ? `${cur.windSpd.toFixed(0)} mph` : '--',
+  html += card('', 'Wind', fw(c.wspdMph),
     [
-      cur.windDir != null ? `from ${degToCompass(cur.windDir)}` : '',
-      cur.windGst != null ? `gusts ${cur.windGst.toFixed(0)} mph` : '',
-    ].filter(Boolean).join(' · ')
-  );
+      c.wdirDeg != null ? `from ${degToCompass(c.wdirDeg)}` : '',
+      c.gstMph  != null ? `gusts ${fw(c.gstMph)}` : '',
+    ].filter(Boolean).join(' · '));
 
   // Water temp
-  if (hasData(d.sst)) {
-    html += card('', 'Water Temp',
-      cur.sst != null ? `${cur.sst.toFixed(1)}°F` : '--', '');
+  if (c.wtmpF != null) {
+    html += card('', 'Water Temp', ft(c.wtmpF), '');
   }
 
   // Air temp
-  html += card('', 'Air Temp',
-    cur.airTemp != null ? `${cur.airTemp.toFixed(1)}°F` : '--', '');
+  if (c.atmpF != null) {
+    html += card('', 'Air Temp', ft(c.atmpF), '');
+  }
 
   document.getElementById('condGrid').innerHTML = html;
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   LEGEND VISIBILITY
-════════════════════════════════════════════════════════════════════════════ */
-function updateLegend(avail) {
-  SWELLS.forEach(s => {
-    const el = document.getElementById(s.legId);
-    if (!el) return;
-    el.classList.toggle('hidden-item', !avail[s.key]);
-  });
-}
-
-/* ════════════════════════════════════════════════════════════════════════════
    CHART BUILDING
 ════════════════════════════════════════════════════════════════════════════ */
-
-// Convert raw array to [{x, y}] chart points using utcTime strings
 function pts(times, arr) {
   if (!arr) return [];
-  return times.map((t, i) => ({ x: utcTime(t), y: arr[i] }));
+  return times.map((t, i) => ({ x: t, y: arr[i] }));
 }
 
-// Build a dataset config
 function ds(label, data, color) {
   return {
     label,
@@ -767,7 +800,6 @@ function ds(label, data, color) {
   };
 }
 
-// Base chart options (returns new object each call)
 function baseOptions(nowStr, yExtra, tooltipLabel) {
   return {
     responsive:           true,
@@ -854,9 +886,8 @@ function makeChart(id, datasets, options) {
 }
 
 function buildCharts(d) {
-  const { times, nowStr, availability } = d;
+  const { times, nowStr } = d;
 
-  // Destroy old charts
   Object.values(charts).forEach(c => c && c.destroy());
 
   // ── Height chart ──────────────────────────────────────────────────────────
@@ -913,24 +944,24 @@ function buildCharts(d) {
 
   const COMPASS_TICKS = { 0:'N', 45:'NE', 90:'E', 135:'SE', 180:'S', 225:'SW', 270:'W', 315:'NW', 360:'N' };
 
-  const dOpts = baseOptions(nowStr, {
-    min: 0,
-    max: 360,
-    ticks: {
-      color: '#9966cc',
-      stepSize: 45,
-      callback: v => COMPASS_TICKS[v] !== undefined ? `${COMPASS_TICKS[v]} ${v}°` : `${v}°`,
-    },
-  }, ctx => {
-    const v = ctx.raw?.y;
-    if (v == null) return null;
-    const deg = Math.round(((v % 360) + 360) % 360);
-    return `${ctx.dataset.label}: ${deg}° (${degToCompass(deg)})`;
-  });
+  charts.d = makeChart('dChart',
+    [ds('Wave Dir', pts(times, d.mwdDeg), '#FFD600')],
+    baseOptions(nowStr, {
+      min: 0,
+      max: 360,
+      ticks: {
+        color: '#9966cc',
+        stepSize: 45,
+        callback: v => COMPASS_TICKS[v] !== undefined ? `${COMPASS_TICKS[v]} ${v}°` : `${v}°`,
+      },
+    }, ctx => {
+      const v = ctx.raw?.y;
+      if (v == null) return null;
+      const deg = Math.round(((v % 360) + 360) % 360);
+      return `Wave Dir: ${deg}° (${degToCompass(deg)})`;
+    })
+  );
 
-  charts.d = makeChart('dChart', dDatasets, dOpts);
-
-  // Crosshair sync across all three charts
   syncCrosshair([charts.h, charts.p, charts.d]);
 }
 
@@ -970,7 +1001,6 @@ function syncCrosshair(chartList) {
 function setLoading(on) {
   const dot = document.getElementById('statusDot');
   const btn = document.getElementById('refreshBtn');
-
   dot.className = 'dot' + (on ? ' spin' : '');
   btn.disabled  = on;
 
@@ -999,39 +1029,29 @@ function setStatus(ok, msg) {
    MAIN LOAD
 ════════════════════════════════════════════════════════════════════════════ */
 async function load() {
-  const locKey = document.getElementById('locSel').value;
-  const days   = parseInt(document.getElementById('daysSel').value, 10);
-
-  let lat, lon, locName;
-
-  if (locKey === 'custom') {
-    lat = parseFloat(document.getElementById('cLat').value);
-    lon = parseFloat(document.getElementById('cLon').value);
-    if (isNaN(lat) || isNaN(lon)) {
-      setStatus(false, 'Enter valid lat/lon to load data');
-      return;
-    }
-    locName = `${lat.toFixed(3)}, ${lon.toFixed(3)}`;
-  } else {
-    ({ lat, lon, name: locName } = LOCATIONS[locKey]);
-  }
+  const stationId = document.getElementById('buoySel').value;
+  const days      = parseInt(document.getElementById('daysSel').value, 10);
+  const buoyName  = document.getElementById('buoySel').selectedOptions[0].text;
 
   setLoading(true);
-  document.getElementById('statusTxt').textContent = `Loading ${locName}…`;
+  document.getElementById('statusTxt').textContent = `Loading buoy ${stationId}…`;
 
   try {
-    const [marine, weather] = await Promise.all([
-      fetchMarine(lat, lon, days),
-      fetchWeather(lat, lon, days),
-    ]);
+    const text = await fetchNDBC(stationId);
+    const rows = parseNDBC(text, days);
 
-    const data = process(marine, weather);
+    if (rows.length === 0) {
+      throw new Error(`No data returned for buoy ${stationId} in the last ${days} day(s)`);
+    }
+
+    const data = buildData(rows);
 
     renderConditions(data);
-    updateLegend(data.availability);
     buildCharts(data);
 
-    setStatus(true, `${locName} · Updated ${new Date().toLocaleTimeString()}`);
+    const lastTime = rows[rows.length - 1].time;
+    const ago = Math.round((Date.now() - new Date(lastTime).getTime()) / 60000);
+    setStatus(true, `${buoyName} · Last obs: ${ago} min ago · ${rows.length} hourly readings`);
   } catch (err) {
     console.error(err);
     setStatus(false, `Error: ${err.message}`);
@@ -1043,25 +1063,9 @@ async function load() {
 /* ════════════════════════════════════════════════════════════════════════════
    EVENT HANDLERS
 ════════════════════════════════════════════════════════════════════════════ */
-document.getElementById('locSel').addEventListener('change', function () {
-  const customRow = document.getElementById('customRow');
-  if (this.value === 'custom') {
-    customRow.classList.add('show');
-  } else {
-    customRow.classList.remove('show');
-    load();
-  }
-});
-
-document.getElementById('refreshBtn').addEventListener('click', load);
+document.getElementById('buoySel').addEventListener('change', load);
 document.getElementById('daysSel').addEventListener('change', load);
-
-document.getElementById('cLat').addEventListener('change', () => {
-  if (document.getElementById('locSel').value === 'custom') load();
-});
-document.getElementById('cLon').addEventListener('change', () => {
-  if (document.getElementById('locSel').value === 'custom') load();
-});
+document.getElementById('refreshBtn').addEventListener('click', load);
 
 /* ════════════════════════════════════════════════════════════════════════════
    INIT
