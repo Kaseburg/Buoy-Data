@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Buoy Data — NOAA NDBC</title>
+  <title>Buoy Data — Swell Charts</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
@@ -313,16 +313,6 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .chart-empty {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
     /* ── Footer ──────────────────────────────────────────────────────── */
     footer {
       text-align: center;
@@ -399,12 +389,11 @@
       </optgroup>
     </select>
 
-    <span class="nav-label">Show:</span>
-    <select id="daysSel" aria-label="Days of history">
-      <option value="1">1 day</option>
+    <span class="nav-label">Forecast:</span>
+    <select id="daysSel" aria-label="Forecast days">
       <option value="3">3 days</option>
       <option value="7" selected>7 days</option>
-      <option value="14">14 days</option>
+      <option value="10">10 days</option>
     </select>
 
     <button class="btn" id="refreshBtn" aria-label="Refresh data">
@@ -437,24 +426,24 @@
     <span class="legend-item" id="leg1">
       <span class="legend-swatch" style="background:var(--c1)"></span>Swell 1
     </span>
-    <span class="legend-item" id="legDP">
-      <span class="legend-swatch" style="background:var(--c2)"></span>Dom. Period
+    <span class="legend-item" id="leg2">
+      <span class="legend-swatch" style="background:var(--c2)"></span>Swell 2
     </span>
-    <span class="legend-item" id="legAP">
-      <span class="legend-swatch" style="background:var(--c3)"></span>Avg Period
+    <span class="legend-item" id="leg3">
+      <span class="legend-swatch" style="background:var(--c3)"></span>Swell 3
     </span>
-    <span class="legend-item" id="legD">
-      <span class="legend-swatch" style="background:var(--cw)"></span>Wave Dir
+    <span class="legend-item" id="legW">
+      <span class="legend-swatch" style="background:var(--cw)"></span>Wind Waves
     </span>
     <span style="margin-left:auto; font-size:11px; color:var(--muted)">
-      Times in UTC &nbsp;·&nbsp; Observed buoy data
+      Times in UTC &nbsp;·&nbsp; Past 2 days + forecast
     </span>
   </div>
 
-  <!-- Chart 1: Wave Height -->
+  <!-- Chart 1: Swell Height -->
   <div class="chart-section">
     <div class="chart-hdr">
-      <span class="chart-title">Wave Height</span>
+      <span class="chart-title">Swell Height</span>
       <span class="chart-unit">feet (ft)</span>
     </div>
     <div class="chart-box" id="hBox">
@@ -462,10 +451,10 @@
     </div>
   </div>
 
-  <!-- Chart 2: Wave Period -->
+  <!-- Chart 2: Swell Period -->
   <div class="chart-section">
     <div class="chart-hdr">
-      <span class="chart-title">Wave Period</span>
+      <span class="chart-title">Swell Period</span>
       <span class="chart-unit">seconds (s)</span>
     </div>
     <div class="chart-box" id="pBox">
@@ -473,10 +462,10 @@
     </div>
   </div>
 
-  <!-- Chart 3: Wave Direction -->
+  <!-- Chart 3: Swell Direction -->
   <div class="chart-section">
     <div class="chart-hdr">
-      <span class="chart-title">Wave Direction</span>
+      <span class="chart-title">Swell Direction</span>
       <span class="chart-unit">coming from (°)</span>
     </div>
     <div class="chart-box" id="dBox">
@@ -487,23 +476,45 @@
 </div><!-- .main -->
 
 <footer>
-  Real-time buoy data from <a href="https://www.ndbc.noaa.gov/" target="_blank" rel="noopener">NOAA National Data Buoy Center (NDBC)</a>
+  Marine forecast from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo Marine API</a>
   &nbsp;·&nbsp;
-  Observed measurements updated hourly
+  Buoy locations reference <a href="https://www.ndbc.noaa.gov/" target="_blank" rel="noopener">NOAA NDBC</a>
 </footer>
 
 <script>
 /* ════════════════════════════════════════════════════════════════════════════
-   CONFIG
+   CONFIG — NDBC station IDs mapped to lat/lon for Open-Meteo queries
 ════════════════════════════════════════════════════════════════════════════ */
-const LOCATIONS = {
-  mavericks:   { name: 'Mavericks, CA',        lat:  37.4961, lon: -122.4984 },
-  ocean_beach: { name: 'Ocean Beach, CA',       lat:  32.7572, lon: -117.2556 },
-  trestles:    { name: 'Trestles, CA',          lat:  33.3811, lon: -117.5897 },
-  huntington:  { name: 'Huntington Beach, CA',  lat:  33.6553, lon: -118.0000 },
-  outer_banks: { name: 'Outer Banks, NC',       lat:  35.5585, lon:  -75.4665 },
-  sebastian:   { name: 'Sebastian Inlet, FL',   lat:  27.8628, lon:  -80.4399 },
-  pipe:        { name: 'Pipeline, HI',          lat:  21.6655, lon: -158.0508 },
+const BUOYS = {
+  '46026': { lat:  37.759, lon: -122.833 },
+  '46012': { lat:  37.363, lon: -122.881 },
+  '46011': { lat:  34.965, lon: -120.903 },
+  '46028': { lat:  35.741, lon: -121.884 },
+  '46047': { lat:  32.434, lon: -119.527 },
+  '46025': { lat:  33.749, lon: -119.044 },
+  '46054': { lat:  34.274, lon: -120.459 },
+  '46086': { lat:  32.491, lon: -118.034 },
+  '46221': { lat:  33.855, lon: -118.633 },
+  '46041': { lat:  47.353, lon: -124.731 },
+  '46029': { lat:  46.144, lon: -124.517 },
+  '46050': { lat:  44.641, lon: -124.526 },
+  '46015': { lat:  42.747, lon: -124.832 },
+  '51001': { lat:  23.445, lon: -162.279 },
+  '51002': { lat:  17.191, lon: -157.794 },
+  '51003': { lat:  19.290, lon: -160.565 },
+  '51004': { lat:  17.582, lon: -152.382 },
+  '51101': { lat:  24.321, lon: -162.058 },
+  '41025': { lat:  35.006, lon:  -75.402 },
+  '41001': { lat:  34.700, lon:  -72.695 },
+  '41002': { lat:  31.759, lon:  -74.948 },
+  '44025': { lat:  40.251, lon:  -73.166 },
+  '44017': { lat:  40.694, lon:  -72.048 },
+  '44013': { lat:  42.346, lon:  -70.651 },
+  '44008': { lat:  40.503, lon:  -69.247 },
+  '44060': { lat:  37.248, lon:  -74.839 },
+  '42036': { lat:  28.500, lon:  -94.046 },
+  '42055': { lat:  22.017, lon:  -93.972 },
+  '42001': { lat:  25.900, lon:  -89.658 },
 };
 
 const SWELLS = [
@@ -514,9 +525,9 @@ const SWELLS = [
   { key: 'wind',   label: 'Wind Waves', color: '#FFD600', legId: 'legW' },
 ];
 
-const PAST_DAYS     = 2;
-const MARINE_URL    = 'https://marine-api.open-meteo.com/v1/marine';
-const FORECAST_URL  = 'https://api.open-meteo.com/v1/forecast';
+const PAST_DAYS   = 2;
+const MARINE_URL  = 'https://marine-api.open-meteo.com/v1/marine';
+const FORECAST_URL= 'https://api.open-meteo.com/v1/forecast';
 
 /* ════════════════════════════════════════════════════════════════════════════
    STATE
@@ -526,9 +537,10 @@ let charts = { h: null, p: null, d: null };
 /* ════════════════════════════════════════════════════════════════════════════
    UTILITIES
 ════════════════════════════════════════════════════════════════════════════ */
-const mToFt    = v => (v == null) ? null : +(v * 3.28084).toFixed(2);
-const msToMph  = v => (v == null) ? null : +(v * 2.23694).toFixed(1);
-const cToF     = v => (v == null) ? null : +((v * 9 / 5) + 32).toFixed(1);
+const mToFt   = v => (v == null || isNaN(v)) ? null : +(v * 3.28084).toFixed(2);
+const kphToMph= v => (v == null || isNaN(v)) ? null : +(v * 0.621371).toFixed(1);
+const cToF    = v => (v == null || isNaN(v)) ? null : +((v * 9 / 5) + 32).toFixed(1);
+const hasData = arr => Array.isArray(arr) && arr.some(v => v != null);
 
 function degToCompass(deg) {
   if (deg == null || isNaN(deg)) return '--';
@@ -536,85 +548,28 @@ function degToCompass(deg) {
   return dirs[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16];
 }
 
-/* ════════════════════════════════════════════════════════════════════════════
-   NDBC FETCH + PARSE
-════════════════════════════════════════════════════════════════════════════ */
-async function fetchNDBC(stationId) {
-  const url = `${NDBC_URL}${stationId}.txt`;
-  let resp;
-  try {
-    resp = await fetch(url);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  } catch (e) {
-    // Retry via CORS proxy
-    resp = await fetch(`${CORS_PROXY}${encodeURIComponent(url)}`);
-    if (!resp.ok) throw new Error(`NDBC ${resp.status} for station ${stationId}`);
+function utcTime(t) { return t.endsWith('Z') ? t : t + ':00Z'; }
+
+function nowIndex(times) {
+  const n = Date.now();
+  for (let i = 0; i < times.length; i++) {
+    if (new Date(utcTime(times[i])).getTime() >= n) return i;
   }
-  return resp.text();
-}
-
-function parseNDBC(text, limitDays) {
-  const lines = text.trim().split('\n');
-
-  // Identify header lines (start with #)
-  const dataLines = lines.filter(l => !l.trimStart().startsWith('#') && l.trim().length > 0);
-
-  const cutoff = Date.now() - limitDays * 86400 * 1000;
-
-  const rows = [];
-  for (const line of dataLines) {
-    const cols = line.trim().split(/\s+/);
-    if (cols.length < 15) continue;
-
-    // NDBC format: YY MM DD hh mm WDIR WSPD GST WVHT DPD APD MWD PRES ATMP WTMP ...
-    const yr = parseInt(cols[0]);
-    const year = yr < 100 ? (yr > 50 ? 1900 + yr : 2000 + yr) : yr;
-    const mo = cols[1].padStart(2,'0');
-    const dy = cols[2].padStart(2,'0');
-    const hh = cols[3].padStart(2,'0');
-    const mn = cols[4].padStart(2,'0');
-    const isoTime = `${year}-${mo}-${dy}T${hh}:${mn}:00Z`;
-    const ts = new Date(isoTime).getTime();
-
-    if (ts < cutoff) continue; // skip rows older than requested window
-
-    const p = v => (v === 'MM' || v === '999' || v === '9999' || v === '99' || v === '99.0') ? null : parseFloat(v);
-
-    rows.push({
-      time:  isoTime,
-      ts,
-      wdir:  p(cols[5]),   // deg
-      wspd:  p(cols[6]),   // m/s
-      gst:   p(cols[7]),   // m/s
-      wvht:  p(cols[8]),   // m  → convert to ft
-      dpd:   p(cols[9]),   // s
-      apd:   p(cols[10]),  // s
-      mwd:   p(cols[11]),  // deg
-      pres:  p(cols[12]),  // hPa
-      atmp:  p(cols[13]),  // °C → convert to °F
-      wtmp:  p(cols[14]),  // °C → convert to °F
-    });
-  }
-
-  // NDBC file is newest-first; reverse to oldest-first for charts
-  rows.reverse();
-  return rows;
+  return times.length - 1;
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   BUILD CHART DATA
+   API
 ════════════════════════════════════════════════════════════════════════════ */
-function buildData(rows) {
-  const times  = rows.map(r => r.time);
-  const wvhtFt = rows.map(r => mToFt(r.wvht));
-  const dpdS   = rows.map(r => r.dpd);
-  const apdS   = rows.map(r => r.apd);
-  const mwdDeg = rows.map(r => r.mwd);
-  const wspdMph= rows.map(r => msToMph(r.wspd));
-  const gstMph = rows.map(r => msToMph(r.gst));
-  const wdirDeg= rows.map(r => r.wdir);
-  const atmpF  = rows.map(r => cToF(r.atmp));
-  const wtmpF  = rows.map(r => cToF(r.wtmp));
+async function fetchMarine(lat, lon, forecastDays) {
+  const vars = [
+    'wave_height','wave_period','wave_direction',
+    'swell_wave_height','swell_wave_period','swell_wave_direction',
+    'swell_wave_height_2','swell_wave_period_2','swell_wave_direction_2',
+    'swell_wave_height_3','swell_wave_period_3','swell_wave_direction_3',
+    'wind_wave_height','wind_wave_period','wind_wave_direction',
+    'sea_surface_temperature',
+  ].join(',');
 
   const u = new URL(MARINE_URL);
   u.searchParams.set('latitude',      lat);
@@ -655,41 +610,39 @@ function process(marine, weather) {
   const ni    = nowIndex(times);
 
   // Height series (meters → feet)
-  const s1h = m.swell_wave_height?.map(mToFt)   || null;
-  const s2h = m.swell_wave_height_2?.map(mToFt) || null;
-  const s3h = m.swell_wave_height_3?.map(mToFt) || null;
-  const wwh = m.wind_wave_height?.map(mToFt)    || null;
-  const wvht= m.wave_height?.map(mToFt)         || null;
+  const wvht = m.wave_height?.map(mToFt)          || null;
+  const s1h  = m.swell_wave_height?.map(mToFt)    || null;
+  const s2h  = m.swell_wave_height_2?.map(mToFt)  || null;
+  const s3h  = m.swell_wave_height_3?.map(mToFt)  || null;
+  const wwh  = m.wind_wave_height?.map(mToFt)     || null;
 
   // Period series (seconds, no conversion)
-  const s1p = m.swell_wave_period    || null;
-  const s2p = m.swell_wave_period_2  || null;
-  const s3p = m.swell_wave_period_3  || null;
-  const wwp = m.wind_wave_period     || null;
-  const wvp = m.wave_period          || null;
+  const wvp  = m.wave_period           || null;
+  const s1p  = m.swell_wave_period     || null;
+  const s2p  = m.swell_wave_period_2   || null;
+  const s3p  = m.swell_wave_period_3   || null;
+  const wwp  = m.wind_wave_period      || null;
 
   // Direction series (degrees, no conversion)
-  const wvd = m.wave_direction         || null;
-  const s1d = m.swell_wave_direction   || null;
-  const s2d = m.swell_wave_direction_2 || null;
-  const s3d = m.swell_wave_direction_3 || null;
-  const wwd = m.wind_wave_direction    || null;
+  const wvd  = m.wave_direction        || null;
+  const s1d  = m.swell_wave_direction  || null;
+  const s2d  = m.swell_wave_direction_2|| null;
+  const s3d  = m.swell_wave_direction_3|| null;
+  const wwd  = m.wind_wave_direction   || null;
 
-  // Weather (already in imperial from API)
+  // Weather
   const sst     = m.sea_surface_temperature?.map(cToF) || null;
-  const airTemp = w.temperature_2m     || null;  // °F
-  const windSpd = w.wind_speed_10m     || null;  // mph
+  const airTemp = w.temperature_2m     || null;
+  const windSpd = w.wind_speed_10m     || null;
   const windDir = w.wind_direction_10m || null;
-  const windGst = w.wind_gusts_10m     || null;  // mph
+  const windGst = w.wind_gusts_10m     || null;
 
   const cur = idx => ({
-    wvht:    wvht?.[idx],
-    wvp:     wvp?.[idx],
-    wvd:     wvd?.[idx],
-    s1h:     s1h?.[idx],  s1p: s1p?.[idx],  s1d: s1d?.[idx],
-    s2h:     s2h?.[idx],  s2p: s2p?.[idx],  s2d: s2d?.[idx],
-    s3h:     s3h?.[idx],  s3p: s3p?.[idx],  s3d: s3d?.[idx],
-    wwh:     wwh?.[idx],  wwp: wwp?.[idx],  wwd: wwd?.[idx],
+    wvht: wvht?.[idx], wvp: wvp?.[idx], wvd: wvd?.[idx],
+    s1h:  s1h?.[idx],  s1p: s1p?.[idx], s1d: s1d?.[idx],
+    s2h:  s2h?.[idx],  s2p: s2p?.[idx], s2d: s2d?.[idx],
+    s3h:  s3h?.[idx],  s3p: s3p?.[idx], s3d: s3d?.[idx],
+    wwh:  wwh?.[idx],  wwp: wwp?.[idx], wwd: wwd?.[idx],
     sst:     sst?.[idx],
     airTemp: airTemp?.[idx],
     windSpd: windSpd?.[idx],
@@ -700,17 +653,17 @@ function process(marine, weather) {
   return {
     times, ni,
     nowStr: utcTime(times[ni]),
-    s1h, s2h, s3h, wwh, wvht,
-    s1p, s2p, s3p, wwp, wvp,
-    s1d, s2d, s3d, wwd, wvd,
+    wvht, s1h, s2h, s3h, wwh,
+    wvp,  s1p, s2p, s3p, wwp,
+    wvd,  s1d, s2d, s3d, wwd,
     sst, airTemp, windSpd, windDir, windGst,
     cur: cur(ni),
     availability: {
       total:  hasData(wvht) || hasData(wvp) || hasData(wvd),
-      swell1: hasData(s1h) || hasData(s1p) || hasData(s1d),
-      swell2: hasData(s2h) || hasData(s2p) || hasData(s2d),
-      swell3: hasData(s3h) || hasData(s3p) || hasData(s3d),
-      wind:   hasData(wwh) || hasData(wwp) || hasData(wwd),
+      swell1: hasData(s1h)  || hasData(s1p) || hasData(s1d),
+      swell2: hasData(s2h)  || hasData(s2p) || hasData(s2d),
+      swell3: hasData(s3h)  || hasData(s3p) || hasData(s3d),
+      wind:   hasData(wwh)  || hasData(wwp) || hasData(wwd),
     },
   };
 }
@@ -719,7 +672,7 @@ function process(marine, weather) {
    CONDITIONS PANEL
 ════════════════════════════════════════════════════════════════════════════ */
 function renderConditions(d) {
-  const c = d.cur;
+  const { cur, availability } = d;
 
   function card(cls, label, value, sub) {
     return `<div class="cond-card ${cls}">
@@ -729,49 +682,71 @@ function renderConditions(d) {
     </div>`;
   }
 
-  const fh = v => v != null ? `${v.toFixed(1)} ft`  : '--';
-  const fp = v => v != null ? `${v.toFixed(0)}s`     : '--';
-  const ft = v => v != null ? `${v.toFixed(1)}°F`    : '--';
-  const fw = v => v != null ? `${v.toFixed(0)} mph`  : '--';
+  const fh = v => v != null ? `${v.toFixed(1)} ft` : '--';
+  const fp = v => v != null ? `${v.toFixed(0)}s`   : '--';
+  const fd = v => v != null ? `${degToCompass(v)} (${Math.round(v)}°)` : '--';
 
   let html = '';
 
-  // Total
   html += card('ct', 'Total Wave',
     fh(cur.wvht),
     [cur.wvp != null ? fp(cur.wvp) : null, cur.wvd != null ? `from ${fd(cur.wvd)}` : null].filter(Boolean).join(' · ')
   );
 
-  // Dominant period
-  if (c.dpdS != null) {
-    html += card('c2', 'Dom. Period', fp(c.dpdS),
-      c.apdS != null ? `Avg ${fp(c.apdS)}` : '');
+  if (availability.swell1) {
+    html += card('c1', 'Swell 1',
+      fh(cur.s1h),
+      [cur.s1p != null ? fp(cur.s1p) : null, cur.s1d != null ? `from ${fd(cur.s1d)}` : null].filter(Boolean).join(' · ')
+    );
   }
 
-  // Wave direction
-  if (c.mwdDeg != null) {
-    html += card('cw', 'Wave Dir', degToCompass(c.mwdDeg),
-      `${Math.round(c.mwdDeg)}° from`);
+  if (availability.swell2) {
+    html += card('c2', 'Swell 2',
+      fh(cur.s2h),
+      [cur.s2p != null ? fp(cur.s2p) : null, cur.s2d != null ? `from ${fd(cur.s2d)}` : null].filter(Boolean).join(' · ')
+    );
   }
 
-  // Wind
-  html += card('', 'Wind', fw(c.wspdMph),
+  if (availability.swell3) {
+    html += card('c3', 'Swell 3',
+      fh(cur.s3h),
+      [cur.s3p != null ? fp(cur.s3p) : null, cur.s3d != null ? `from ${fd(cur.s3d)}` : null].filter(Boolean).join(' · ')
+    );
+  }
+
+  if (availability.wind) {
+    html += card('cw', 'Wind Waves',
+      fh(cur.wwh),
+      [cur.wwp != null ? fp(cur.wwp) : null, cur.wwd != null ? `from ${degToCompass(cur.wwd)}` : null].filter(Boolean).join(' · ')
+    );
+  }
+
+  html += card('', 'Wind',
+    cur.windSpd != null ? `${cur.windSpd.toFixed(0)} mph` : '--',
     [
-      c.wdirDeg != null ? `from ${degToCompass(c.wdirDeg)}` : '',
-      c.gstMph  != null ? `gusts ${fw(c.gstMph)}` : '',
-    ].filter(Boolean).join(' · '));
+      cur.windDir != null ? `from ${degToCompass(cur.windDir)}` : '',
+      cur.windGst != null ? `gusts ${cur.windGst.toFixed(0)} mph` : '',
+    ].filter(Boolean).join(' · ')
+  );
 
-  // Water temp
-  if (c.wtmpF != null) {
-    html += card('', 'Water Temp', ft(c.wtmpF), '');
+  if (hasData(d.sst)) {
+    html += card('', 'Water Temp', cur.sst != null ? `${cur.sst.toFixed(1)}°F` : '--', '');
   }
 
-  // Air temp
-  if (c.atmpF != null) {
-    html += card('', 'Air Temp', ft(c.atmpF), '');
-  }
+  html += card('', 'Air Temp', cur.airTemp != null ? `${cur.airTemp.toFixed(1)}°F` : '--', '');
 
   document.getElementById('condGrid').innerHTML = html;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LEGEND VISIBILITY
+════════════════════════════════════════════════════════════════════════════ */
+function updateLegend(avail) {
+  SWELLS.forEach(s => {
+    const el = document.getElementById(s.legId);
+    if (!el) return;
+    el.classList.toggle('hidden-item', !avail[s.key]);
+  });
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -779,42 +754,41 @@ function renderConditions(d) {
 ════════════════════════════════════════════════════════════════════════════ */
 function pts(times, arr) {
   if (!arr) return [];
-  return times.map((t, i) => ({ x: t, y: arr[i] }));
+  return times.map((t, i) => ({ x: utcTime(t), y: arr[i] }));
 }
 
 function ds(label, data, color) {
   return {
-    label,
-    data,
-    borderColor:     color,
-    backgroundColor: color + '20',
-    borderWidth: 2.5,
-    pointRadius: 0,
-    pointHoverRadius: 5,
+    label, data,
+    borderColor:              color,
+    backgroundColor:          color + '20',
+    borderWidth:              2.5,
+    pointRadius:              0,
+    pointHoverRadius:         5,
     pointHoverBackgroundColor: color,
-    pointHoverBorderColor: '#fff',
-    pointHoverBorderWidth: 1,
-    tension: 0.35,
-    spanGaps: true,
-    fill: false,
+    pointHoverBorderColor:    '#fff',
+    pointHoverBorderWidth:    1,
+    tension:                  0.35,
+    spanGaps:                 true,
+    fill:                     false,
   };
 }
 
 function baseOptions(nowStr, yExtra, tooltipLabel) {
   return {
-    responsive:           true,
-    maintainAspectRatio:  false,
-    animation:            { duration: 400 },
-    interaction:          { mode: 'index', intersect: false },
+    responsive:          true,
+    maintainAspectRatio: false,
+    animation:           { duration: 400 },
+    interaction:         { mode: 'index', intersect: false },
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor:  'rgba(6,0,26,0.97)',
-        borderColor:      'rgba(0,245,255,0.35)',
-        borderWidth:      1,
-        titleColor:       '#00F5FF',
-        bodyColor:        '#c0a0ff',
-        padding:          10,
+        backgroundColor: 'rgba(6,0,26,0.97)',
+        borderColor:     'rgba(0,245,255,0.35)',
+        borderWidth:     1,
+        titleColor:      '#00F5FF',
+        bodyColor:       '#c0a0ff',
+        padding:         10,
         callbacks: {
           title(ctx) {
             if (!ctx.length) return '';
@@ -857,16 +831,11 @@ function baseOptions(nowStr, yExtra, tooltipLabel) {
       x: {
         type: 'time',
         time: {
-          tooltipFormat: 'MMM d, HH:mm',
+          tooltipFormat:  'MMM d, HH:mm',
           displayFormats: { hour: 'MMM d HH:mm', day: 'MMM d' },
         },
         grid:  { color: 'rgba(100,0,180,0.28)' },
-        ticks: {
-          color: '#9966cc',
-          maxRotation: 0,
-          autoSkip:    true,
-          maxTicksLimit: 8,
-        },
+        ticks: { color: '#9966cc', maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
       },
       y: {
         grid:  { color: 'rgba(100,0,180,0.28)' },
@@ -877,90 +846,74 @@ function baseOptions(nowStr, yExtra, tooltipLabel) {
   };
 }
 
-function makeChart(id, datasets, options) {
-  return new Chart(document.getElementById(id), {
-    type: 'line',
-    data: { datasets },
-    options,
-  });
-}
-
 function buildCharts(d) {
-  const { times, nowStr } = d;
+  const { times, nowStr, availability } = d;
 
   Object.values(charts).forEach(c => c && c.destroy());
 
-  // ── Height chart ──────────────────────────────────────────────────────────
-  const hDatasets = [];
-  if (availability.total)  hDatasets.push(ds('Total Wave', pts(times, d.wvht), '#FFFFFF'));
-  if (availability.swell1) hDatasets.push(ds('Swell 1',    pts(times, d.s1h), '#00F5FF'));
-  if (availability.swell2) hDatasets.push(ds('Swell 2',    pts(times, d.s2h), '#FF2D78'));
-  if (availability.swell3) hDatasets.push(ds('Swell 3',    pts(times, d.s3h), '#39FF14'));
-  if (availability.wind)   hDatasets.push(ds('Wind Waves', pts(times, d.wwh), '#FFD600'));
+  // ── Height chart ───────────────────────────────────────────────────────────
+  const hDs = [];
+  if (availability.total)  hDs.push(ds('Total Wave', pts(times, d.wvht), '#FFFFFF'));
+  if (availability.swell1) hDs.push(ds('Swell 1',    pts(times, d.s1h),  '#00F5FF'));
+  if (availability.swell2) hDs.push(ds('Swell 2',    pts(times, d.s2h),  '#FF2D78'));
+  if (availability.swell3) hDs.push(ds('Swell 3',    pts(times, d.s3h),  '#39FF14'));
+  if (availability.wind)   hDs.push(ds('Wind Waves', pts(times, d.wwh),  '#FFD600'));
 
-  const hOpts = baseOptions(nowStr, {
-    beginAtZero: true,
-    ticks: {
-      color: '#9966cc',
-      callback: v => `${v} ft`,
-    },
-  }, ctx => {
-    const v = ctx.raw?.y;
-    if (v == null) return null;
-    return `${ctx.dataset.label}: ${v.toFixed(1)} ft`;
+  charts.h = new Chart(document.getElementById('hChart'), {
+    type: 'line', data: { datasets: hDs },
+    options: baseOptions(nowStr, {
+      beginAtZero: true,
+      ticks: { color: '#9966cc', callback: v => `${v} ft` },
+    }, ctx => {
+      const v = ctx.raw?.y;
+      return v == null ? null : `${ctx.dataset.label}: ${v.toFixed(1)} ft`;
+    }),
   });
 
-  charts.h = makeChart('hChart', hDatasets, hOpts);
+  // ── Period chart ───────────────────────────────────────────────────────────
+  const pDs = [];
+  if (availability.total)  pDs.push(ds('Total Wave', pts(times, d.wvp), '#FFFFFF'));
+  if (availability.swell1) pDs.push(ds('Swell 1',    pts(times, d.s1p), '#00F5FF'));
+  if (availability.swell2) pDs.push(ds('Swell 2',    pts(times, d.s2p), '#FF2D78'));
+  if (availability.swell3) pDs.push(ds('Swell 3',    pts(times, d.s3p), '#39FF14'));
+  if (availability.wind)   pDs.push(ds('Wind Waves', pts(times, d.wwp), '#FFD600'));
 
-  // ── Period chart ──────────────────────────────────────────────────────────
-  const pDatasets = [];
-  if (availability.total)  pDatasets.push(ds('Total Wave', pts(times, d.wvp), '#FFFFFF'));
-  if (availability.swell1) pDatasets.push(ds('Swell 1',    pts(times, d.s1p), '#00F5FF'));
-  if (availability.swell2) pDatasets.push(ds('Swell 2',    pts(times, d.s2p), '#FF2D78'));
-  if (availability.swell3) pDatasets.push(ds('Swell 3',    pts(times, d.s3p), '#39FF14'));
-  if (availability.wind)   pDatasets.push(ds('Wind Waves', pts(times, d.wwp), '#FFD600'));
-
-  const pOpts = baseOptions(nowStr, {
-    beginAtZero: true,
-    ticks: {
-      color: '#9966cc',
-      callback: v => `${v}s`,
-    },
-  }, ctx => {
-    const v = ctx.raw?.y;
-    if (v == null) return null;
-    return `${ctx.dataset.label}: ${v.toFixed(0)}s`;
+  charts.p = new Chart(document.getElementById('pChart'), {
+    type: 'line', data: { datasets: pDs },
+    options: baseOptions(nowStr, {
+      beginAtZero: true,
+      ticks: { color: '#9966cc', callback: v => `${v}s` },
+    }, ctx => {
+      const v = ctx.raw?.y;
+      return v == null ? null : `${ctx.dataset.label}: ${v.toFixed(0)}s`;
+    }),
   });
 
-  charts.p = makeChart('pChart', pDatasets, pOpts);
+  // ── Direction chart ────────────────────────────────────────────────────────
+  const dDs = [];
+  if (availability.total)  dDs.push(ds('Total Wave', pts(times, d.wvd), '#FFFFFF'));
+  if (availability.swell1) dDs.push(ds('Swell 1',    pts(times, d.s1d), '#00F5FF'));
+  if (availability.swell2) dDs.push(ds('Swell 2',    pts(times, d.s2d), '#FF2D78'));
+  if (availability.swell3) dDs.push(ds('Swell 3',    pts(times, d.s3d), '#39FF14'));
+  if (availability.wind)   dDs.push(ds('Wind Waves', pts(times, d.wwd), '#FFD600'));
 
-  // ── Direction chart ───────────────────────────────────────────────────────
-  const dDatasets = [];
-  if (availability.total)  dDatasets.push(ds('Total Wave', pts(times, d.wvd), '#FFFFFF'));
-  if (availability.swell1) dDatasets.push(ds('Swell 1',    pts(times, d.s1d), '#00F5FF'));
-  if (availability.swell2) dDatasets.push(ds('Swell 2',    pts(times, d.s2d), '#FF2D78'));
-  if (availability.swell3) dDatasets.push(ds('Swell 3',    pts(times, d.s3d), '#39FF14'));
-  if (availability.wind)   dDatasets.push(ds('Wind Waves', pts(times, d.wwd), '#FFD600'));
+  const COMPASS = { 0:'N', 45:'NE', 90:'E', 135:'SE', 180:'S', 225:'SW', 270:'W', 315:'NW', 360:'N' };
 
-  const COMPASS_TICKS = { 0:'N', 45:'NE', 90:'E', 135:'SE', 180:'S', 225:'SW', 270:'W', 315:'NW', 360:'N' };
-
-  charts.d = makeChart('dChart',
-    [ds('Wave Dir', pts(times, d.mwdDeg), '#FFD600')],
-    baseOptions(nowStr, {
-      min: 0,
-      max: 360,
+  charts.d = new Chart(document.getElementById('dChart'), {
+    type: 'line', data: { datasets: dDs },
+    options: baseOptions(nowStr, {
+      min: 0, max: 360,
       ticks: {
-        color: '#9966cc',
-        stepSize: 45,
-        callback: v => COMPASS_TICKS[v] !== undefined ? `${COMPASS_TICKS[v]} ${v}°` : `${v}°`,
+        color: '#9966cc', stepSize: 45,
+        callback: v => COMPASS[v] !== undefined ? `${COMPASS[v]} ${v}°` : `${v}°`,
       },
     }, ctx => {
       const v = ctx.raw?.y;
       if (v == null) return null;
       const deg = Math.round(((v % 360) + 360) % 360);
-      return `Wave Dir: ${deg}° (${degToCompass(deg)})`;
-    })
-  );
+      return `${ctx.dataset.label}: ${deg}° (${degToCompass(deg)})`;
+    }),
+  });
 
   syncCrosshair([charts.h, charts.p, charts.d]);
 }
@@ -970,22 +923,21 @@ function buildCharts(d) {
 ════════════════════════════════════════════════════════════════════════════ */
 function syncCrosshair(chartList) {
   chartList.forEach(source => {
-    const canvas = source.canvas;
-
-    canvas.addEventListener('mousemove', evt => {
-      const elements = source.getElementsAtEventForMode(evt, 'index', { intersect: false }, true);
-      if (!elements.length) return;
-      const idx = elements[0].index;
-
+    source.canvas.addEventListener('mousemove', evt => {
+      const els = source.getElementsAtEventForMode(evt, 'index', { intersect: false }, true);
+      if (!els.length) return;
+      const idx = els[0].index;
       chartList.forEach(target => {
         if (target === source) return;
-        const active = target.data.datasets.map((_, di) => ({ datasetIndex: di, index: idx }));
-        target.tooltip.setActiveElements(active, { x: 0, y: 0 });
+        target.tooltip.setActiveElements(
+          target.data.datasets.map((_, di) => ({ datasetIndex: di, index: idx })),
+          { x: 0, y: 0 }
+        );
         target.update('none');
       });
     });
 
-    canvas.addEventListener('mouseleave', () => {
+    source.canvas.addEventListener('mouseleave', () => {
       chartList.forEach(target => {
         if (target === source) return;
         target.tooltip.setActiveElements([], { x: 0, y: 0 });
@@ -999,11 +951,8 @@ function syncCrosshair(chartList) {
    LOADING / STATUS UI
 ════════════════════════════════════════════════════════════════════════════ */
 function setLoading(on) {
-  const dot = document.getElementById('statusDot');
-  const btn = document.getElementById('refreshBtn');
-  dot.className = 'dot' + (on ? ' spin' : '');
-  btn.disabled  = on;
-
+  document.getElementById('statusDot').className = 'dot' + (on ? ' spin' : '');
+  document.getElementById('refreshBtn').disabled = on;
   ['hBox','pBox','dBox'].forEach(id => {
     const box = document.getElementById(id);
     const existing = box.querySelector('.loading-overlay');
@@ -1019,10 +968,8 @@ function setLoading(on) {
 }
 
 function setStatus(ok, msg) {
-  const dot = document.getElementById('statusDot');
-  const txt = document.getElementById('statusTxt');
-  dot.className = 'dot' + (ok ? '' : ' err');
-  txt.textContent = msg;
+  document.getElementById('statusDot').className = 'dot' + (ok ? '' : ' err');
+  document.getElementById('statusTxt').textContent = msg;
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -1032,26 +979,24 @@ async function load() {
   const stationId = document.getElementById('buoySel').value;
   const days      = parseInt(document.getElementById('daysSel').value, 10);
   const buoyName  = document.getElementById('buoySel').selectedOptions[0].text;
+  const { lat, lon } = BUOYS[stationId];
 
   setLoading(true);
-  document.getElementById('statusTxt').textContent = `Loading buoy ${stationId}…`;
+  document.getElementById('statusTxt').textContent = `Loading ${buoyName}…`;
 
   try {
-    const text = await fetchNDBC(stationId);
-    const rows = parseNDBC(text, days);
+    const [marine, weather] = await Promise.all([
+      fetchMarine(lat, lon, days),
+      fetchWeather(lat, lon, days),
+    ]);
 
-    if (rows.length === 0) {
-      throw new Error(`No data returned for buoy ${stationId} in the last ${days} day(s)`);
-    }
-
-    const data = buildData(rows);
+    const data = process(marine, weather);
 
     renderConditions(data);
+    updateLegend(data.availability);
     buildCharts(data);
 
-    const lastTime = rows[rows.length - 1].time;
-    const ago = Math.round((Date.now() - new Date(lastTime).getTime()) / 60000);
-    setStatus(true, `${buoyName} · Last obs: ${ago} min ago · ${rows.length} hourly readings`);
+    setStatus(true, `${buoyName} · Updated ${new Date().toLocaleTimeString()}`);
   } catch (err) {
     console.error(err);
     setStatus(false, `Error: ${err.message}`);
@@ -1061,15 +1006,12 @@ async function load() {
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   EVENT HANDLERS
+   EVENT HANDLERS + INIT
 ════════════════════════════════════════════════════════════════════════════ */
 document.getElementById('buoySel').addEventListener('change', load);
 document.getElementById('daysSel').addEventListener('change', load);
 document.getElementById('refreshBtn').addEventListener('click', load);
 
-/* ════════════════════════════════════════════════════════════════════════════
-   INIT
-════════════════════════════════════════════════════════════════════════════ */
 load();
 </script>
 </body>
