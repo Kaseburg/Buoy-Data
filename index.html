@@ -194,10 +194,6 @@
     .cond-card:hover { box-shadow: 0 0 16px rgba(180,100,255,0.12); }
 
     .cond-card.ct { border-left-color: #FFFFFF; box-shadow: -2px 0 14px rgba(255,255,255,0.18); }
-    .cond-card.c1 { border-left-color: #00F5FF; box-shadow: -2px 0 14px rgba(0,245,255,0.18); }
-    .cond-card.c2 { border-left-color: #FF2D78; box-shadow: -2px 0 14px rgba(255,45,120,0.18); }
-    .cond-card.c3 { border-left-color: #39FF14; box-shadow: -2px 0 14px rgba(57,255,20,0.18); }
-    .cond-card.cw { border-left-color: #FFD600; box-shadow: -2px 0 14px rgba(255,214,0,0.18); }
 
     .cond-lbl {
       font-size: 10px;
@@ -220,21 +216,24 @@
       margin-top: 4px;
     }
 
-    /* ── Shared legend ───────────────────────────────────────────────── */
-    .legend-bar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px 18px;
-      padding: 9px 16px;
+    /* ── Swell composition table ─────────────────────────────────────── */
+    .swell-table-wrap {
       background: var(--bg-card);
       border: 1px solid rgba(0,245,255,0.15);
       border-radius: 6px;
-      margin-bottom: 16px;
-      font-size: 12px;
+      margin-bottom: 20px;
+      overflow: hidden;
       box-shadow: 0 0 20px rgba(0,245,255,0.04), inset 0 0 30px rgba(0,245,255,0.02);
     }
-    .legend-hd {
+
+    .swell-table-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 16px;
+      border-bottom: 1px solid rgba(0,245,255,0.1);
+    }
+    .swell-table-title {
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
@@ -242,25 +241,75 @@
       color: var(--muted);
       font-family: 'Righteous', cursive;
     }
-    .legend-item {
+    .swell-table-time {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .swell-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .swell-table th {
+      text-align: left;
+      padding: 7px 16px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      font-family: 'Righteous', cursive;
+      border-bottom: 1px solid rgba(100,0,180,0.3);
+      white-space: nowrap;
+    }
+    .swell-table th.right { text-align: right; }
+    .swell-table td {
+      padding: 8px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(100,0,180,0.15);
+      white-space: nowrap;
+    }
+    .swell-table tr:last-child td { border-bottom: none; }
+    .swell-table td.right { text-align: right; color: var(--muted); font-size: 12px; }
+
+    .swell-table tr:hover td { background: rgba(0,245,255,0.03); }
+
+    .comp-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+      flex-shrink: 0;
+      vertical-align: middle;
+      position: relative;
+      top: -1px;
+    }
+
+    .energy-bar-cell { width: 120px; }
+    .energy-bar-wrap {
       display: flex;
       align-items: center;
-      gap: 7px;
-      color: var(--text);
+      gap: 8px;
     }
-    .legend-swatch {
-      width: 26px;
-      height: 3px;
-      border-radius: 2px;
+    .energy-bar-bg {
+      flex: 1;
+      height: 5px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .energy-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width .4s;
+    }
+    .energy-pct {
+      font-size: 11px;
+      color: var(--muted);
+      width: 34px;
+      text-align: right;
       flex-shrink: 0;
     }
-    /* Neon glow on each swatch */
-    #legT .legend-swatch { box-shadow: 0 0 6px #FFFFFF; }
-    #leg1 .legend-swatch { box-shadow: 0 0 6px #00F5FF; }
-    #leg2 .legend-swatch { box-shadow: 0 0 6px #FF2D78; }
-    #leg3 .legend-swatch { box-shadow: 0 0 6px #39FF14; }
-    #legW .legend-swatch { box-shadow: 0 0 6px #FFD600; }
-    .legend-item.hidden-item { opacity: .35; text-decoration: line-through; }
 
     /* ── Charts ──────────────────────────────────────────────────────── */
     .chart-section { margin-bottom: 18px; }
@@ -331,6 +380,7 @@
       .main   { padding: 14px 10px 24px; }
       .cond-val { font-size: 18px; }
       .chart-box { height: 180px; }
+      .energy-bar-cell { display: none; }
     }
   </style>
 </head>
@@ -391,8 +441,8 @@
 
     <span class="nav-label">Forecast:</span>
     <select id="daysSel" aria-label="Forecast days">
-      <option value="3">3 days</option>
-      <option value="7" selected>7 days</option>
+      <option value="3" selected>3 days</option>
+      <option value="7">7 days</option>
       <option value="10">10 days</option>
     </select>
 
@@ -417,44 +467,41 @@
   <!-- Current conditions -->
   <div class="cond-grid" id="condGrid"></div>
 
-  <!-- Shared legend -->
-  <div class="legend-bar" id="legendBar">
-    <span class="legend-hd">Legend</span>
-    <span class="legend-item" id="legT">
-      <span class="legend-swatch" style="background:var(--ct)"></span>Total Wave
-    </span>
-    <span class="legend-item" id="leg1">
-      <span class="legend-swatch" style="background:var(--c1)"></span>Swell 1
-    </span>
-    <span class="legend-item" id="leg2">
-      <span class="legend-swatch" style="background:var(--c2)"></span>Swell 2
-    </span>
-    <span class="legend-item" id="leg3">
-      <span class="legend-swatch" style="background:var(--c3)"></span>Swell 3
-    </span>
-    <span class="legend-item" id="legW">
-      <span class="legend-swatch" style="background:var(--cw)"></span>Wind Waves
-    </span>
-    <span style="margin-left:auto; font-size:11px; color:var(--muted)">
-      Times in UTC &nbsp;·&nbsp; Past 2 days + forecast
-    </span>
+  <!-- Swell composition table -->
+  <div class="swell-table-wrap" id="swellTableWrap">
+    <div class="swell-table-hdr">
+      <span class="swell-table-title">Current Swell Composition</span>
+      <span class="swell-table-time" id="swellTableTime"></span>
+    </div>
+    <table class="swell-table" id="swellTable">
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Height</th>
+          <th>Period</th>
+          <th>Direction</th>
+          <th class="energy-bar-cell right">Wave Energy</th>
+        </tr>
+      </thead>
+      <tbody id="swellTableBody"></tbody>
+    </table>
   </div>
 
-  <!-- Chart 1: Swell Height -->
+  <!-- Chart 1: Wave Height -->
   <div class="chart-section">
     <div class="chart-hdr">
-      <span class="chart-title">Swell Height</span>
-      <span class="chart-unit">feet (ft)</span>
+      <span class="chart-title">Wave Height</span>
+      <span class="chart-unit" id="hUnit">feet (ft) · 3 days history + forecast</span>
     </div>
     <div class="chart-box" id="hBox">
       <canvas id="hChart"></canvas>
     </div>
   </div>
 
-  <!-- Chart 2: Swell Period -->
+  <!-- Chart 2: Wave Period -->
   <div class="chart-section">
     <div class="chart-hdr">
-      <span class="chart-title">Swell Period</span>
+      <span class="chart-title">Wave Period</span>
       <span class="chart-unit">seconds (s)</span>
     </div>
     <div class="chart-box" id="pBox">
@@ -462,10 +509,10 @@
     </div>
   </div>
 
-  <!-- Chart 3: Swell Direction -->
+  <!-- Chart 3: Wave Direction -->
   <div class="chart-section">
     <div class="chart-hdr">
-      <span class="chart-title">Swell Direction</span>
+      <span class="chart-title">Wave Direction</span>
       <span class="chart-unit">coming from (°)</span>
     </div>
     <div class="chart-box" id="dBox">
@@ -517,17 +564,9 @@ const BUOYS = {
   '42001': { lat:  25.900, lon:  -89.658 },
 };
 
-const SWELLS = [
-  { key: 'total',  label: 'Total Wave', color: '#FFFFFF', legId: 'legT' },
-  { key: 'swell1', label: 'Swell 1',    color: '#00F5FF', legId: 'leg1' },
-  { key: 'swell2', label: 'Swell 2',    color: '#FF2D78', legId: 'leg2' },
-  { key: 'swell3', label: 'Swell 3',    color: '#39FF14', legId: 'leg3' },
-  { key: 'wind',   label: 'Wind Waves', color: '#FFD600', legId: 'legW' },
-];
-
-const PAST_DAYS   = 2;
-const MARINE_URL  = 'https://marine-api.open-meteo.com/v1/marine';
-const FORECAST_URL= 'https://api.open-meteo.com/v1/forecast';
+const PAST_DAYS    = 3;
+const MARINE_URL   = 'https://marine-api.open-meteo.com/v1/marine';
+const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 
 /* ════════════════════════════════════════════════════════════════════════════
    STATE
@@ -538,7 +577,6 @@ let charts = { h: null, p: null, d: null };
    UTILITIES
 ════════════════════════════════════════════════════════════════════════════ */
 const mToFt   = v => (v == null || isNaN(v)) ? null : +(v * 3.28084).toFixed(2);
-const kphToMph= v => (v == null || isNaN(v)) ? null : +(v * 0.621371).toFixed(1);
 const cToF    = v => (v == null || isNaN(v)) ? null : +((v * 9 / 5) + 32).toFixed(1);
 const hasData = arr => Array.isArray(arr) && arr.some(v => v != null);
 
@@ -562,26 +600,42 @@ function nowIndex(times) {
    API
 ════════════════════════════════════════════════════════════════════════════ */
 async function fetchMarine(lat, lon, forecastDays) {
-  const vars = [
+  // swell_wave_height_2/_3 are only available for some locations/models.
+  // past_days support varies by region.
+  const base = [
     'wave_height','wave_period','wave_direction',
     'swell_wave_height','swell_wave_period','swell_wave_direction',
+    'wind_wave_height','wind_wave_period','wind_wave_direction',
+  ];
+  const extended = [
+    ...base,
     'swell_wave_height_2','swell_wave_period_2','swell_wave_direction_2',
     'swell_wave_height_3','swell_wave_period_3','swell_wave_direction_3',
-    'wind_wave_height','wind_wave_period','wind_wave_direction',
-    'sea_surface_temperature',
-  ].join(',');
+  ];
 
-  const u = new URL(MARINE_URL);
-  u.searchParams.set('latitude',      lat);
-  u.searchParams.set('longitude',     lon);
-  u.searchParams.set('hourly',        vars);
-  u.searchParams.set('past_days',     PAST_DAYS);
-  u.searchParams.set('forecast_days', forecastDays);
-  u.searchParams.set('timezone',      'GMT');
+  function buildUrl(vars, pastDays) {
+    const past = pastDays > 0 ? `&past_days=${pastDays}` : '';
+    return `${MARINE_URL}?latitude=${lat}&longitude=${lon}` +
+           `&hourly=${vars.join(',')}&forecast_days=${forecastDays}${past}&timezone=GMT`;
+  }
 
-  const r = await fetch(u);
-  if (!r.ok) throw new Error(`Marine API ${r.status}`);
-  return r.json();
+  // Try progressively simpler requests until one succeeds
+  const attempts = [
+    buildUrl([...extended, 'sea_surface_temperature'], PAST_DAYS),
+    buildUrl(extended,                                 PAST_DAYS),
+    buildUrl([...base, 'sea_surface_temperature'],     PAST_DAYS),
+    buildUrl(base,                                     PAST_DAYS),
+    buildUrl([...base, 'sea_surface_temperature'],     0),
+    buildUrl(base,                                     0),
+  ];
+  for (const url of attempts) {
+    const r = await fetch(url);
+    if (r.ok) return r.json();
+  }
+  // All attempts failed — surface the last error
+  const r = await fetch(attempts[attempts.length - 1]);
+  const errText = await r.text().catch(() => '');
+  throw new Error(`Marine API ${r.status}: ${errText}`);
 }
 
 async function fetchWeather(lat, lon, forecastDays) {
@@ -609,26 +663,24 @@ function process(marine, weather) {
   const times = m.time;
   const ni    = nowIndex(times);
 
-  // Height series (meters → feet)
-  const wvht = m.wave_height?.map(mToFt)          || null;
-  const s1h  = m.swell_wave_height?.map(mToFt)    || null;
-  const s2h  = m.swell_wave_height_2?.map(mToFt)  || null;
-  const s3h  = m.swell_wave_height_3?.map(mToFt)  || null;
-  const wwh  = m.wind_wave_height?.map(mToFt)     || null;
+  // Total wave (height in ft, period in s, direction in °)
+  const wvht = m.wave_height?.map(mToFt)  || null;
+  const wvp  = m.wave_period              || null;
+  const wvd  = m.wave_direction           || null;
 
-  // Period series (seconds, no conversion)
-  const wvp  = m.wave_period           || null;
-  const s1p  = m.swell_wave_period     || null;
-  const s2p  = m.swell_wave_period_2   || null;
-  const s3p  = m.swell_wave_period_3   || null;
-  const wwp  = m.wind_wave_period      || null;
-
-  // Direction series (degrees, no conversion)
-  const wvd  = m.wave_direction        || null;
-  const s1d  = m.swell_wave_direction  || null;
-  const s2d  = m.swell_wave_direction_2|| null;
-  const s3d  = m.swell_wave_direction_3|| null;
-  const wwd  = m.wind_wave_direction   || null;
+  // Swell components (for table only — not charted)
+  const s1h  = m.swell_wave_height?.map(mToFt)     || null;
+  const s1p  = m.swell_wave_period                 || null;
+  const s1d  = m.swell_wave_direction              || null;
+  const s2h  = m.swell_wave_height_2?.map(mToFt)   || null;
+  const s2p  = m.swell_wave_period_2               || null;
+  const s2d  = m.swell_wave_direction_2            || null;
+  const s3h  = m.swell_wave_height_3?.map(mToFt)   || null;
+  const s3p  = m.swell_wave_period_3               || null;
+  const s3d  = m.swell_wave_direction_3            || null;
+  const wwh  = m.wind_wave_height?.map(mToFt)      || null;
+  const wwp  = m.wind_wave_period                  || null;
+  const wwd  = m.wind_wave_direction               || null;
 
   // Weather
   const sst     = m.sea_surface_temperature?.map(cToF) || null;
@@ -637,33 +689,38 @@ function process(marine, weather) {
   const windDir = w.wind_direction_10m || null;
   const windGst = w.wind_gusts_10m     || null;
 
-  const cur = idx => ({
-    wvht: wvht?.[idx], wvp: wvp?.[idx], wvd: wvd?.[idx],
-    s1h:  s1h?.[idx],  s1p: s1p?.[idx], s1d: s1d?.[idx],
-    s2h:  s2h?.[idx],  s2p: s2p?.[idx], s2d: s2d?.[idx],
-    s3h:  s3h?.[idx],  s3p: s3p?.[idx], s3d: s3d?.[idx],
-    wwh:  wwh?.[idx],  wwp: wwp?.[idx], wwd: wwd?.[idx],
-    sst:     sst?.[idx],
-    airTemp: airTemp?.[idx],
-    windSpd: windSpd?.[idx],
-    windDir: windDir?.[idx],
-    windGst: windGst?.[idx],
-  });
+  // Current snapshot
+  const cur = {
+    wvht: wvht?.[ni], wvp: wvp?.[ni], wvd: wvd?.[ni],
+    s1h:  s1h?.[ni],  s1p: s1p?.[ni], s1d: s1d?.[ni],
+    s2h:  s2h?.[ni],  s2p: s2p?.[ni], s2d: s2d?.[ni],
+    s3h:  s3h?.[ni],  s3p: s3p?.[ni], s3d: s3d?.[ni],
+    wwh:  wwh?.[ni],  wwp: wwp?.[ni], wwd: wwd?.[ni],
+    sst:     sst?.[ni],
+    airTemp: airTemp?.[ni],
+    windSpd: windSpd?.[ni],
+    windDir: windDir?.[ni],
+    windGst: windGst?.[ni],
+  };
 
   return {
     times, ni,
     nowStr: utcTime(times[ni]),
-    wvht, s1h, s2h, s3h, wwh,
-    wvp,  s1p, s2p, s3p, wwp,
-    wvd,  s1d, s2d, s3d, wwd,
+    // chart data
+    wvht, wvp, wvd,
+    // swell component data (for table)
+    s1h, s1p, s1d,
+    s2h, s2p, s2d,
+    s3h, s3p, s3d,
+    wwh, wwp, wwd,
     sst, airTemp, windSpd, windDir, windGst,
-    cur: cur(ni),
+    cur,
+    hasPast: times.length > 0 && new Date(utcTime(times[0])).getTime() < Date.now() - 3600_000,
     availability: {
-      total:  hasData(wvht) || hasData(wvp) || hasData(wvd),
-      swell1: hasData(s1h)  || hasData(s1p) || hasData(s1d),
-      swell2: hasData(s2h)  || hasData(s2p) || hasData(s2d),
-      swell3: hasData(s3h)  || hasData(s3p) || hasData(s3d),
-      wind:   hasData(wwh)  || hasData(wwp) || hasData(wwd),
+      swell1: hasData(s1h) || hasData(s1p) || hasData(s1d),
+      swell2: hasData(s2h) || hasData(s2p) || hasData(s2d),
+      swell3: hasData(s3h) || hasData(s3p) || hasData(s3d),
+      wind:   hasData(wwh) || hasData(wwp) || hasData(wwd),
     },
   };
 }
@@ -672,7 +729,7 @@ function process(marine, weather) {
    CONDITIONS PANEL
 ════════════════════════════════════════════════════════════════════════════ */
 function renderConditions(d) {
-  const { cur, availability } = d;
+  const { cur } = d;
 
   function card(cls, label, value, sub) {
     return `<div class="cond-card ${cls}">
@@ -693,34 +750,6 @@ function renderConditions(d) {
     [cur.wvp != null ? fp(cur.wvp) : null, cur.wvd != null ? `from ${fd(cur.wvd)}` : null].filter(Boolean).join(' · ')
   );
 
-  if (availability.swell1) {
-    html += card('c1', 'Swell 1',
-      fh(cur.s1h),
-      [cur.s1p != null ? fp(cur.s1p) : null, cur.s1d != null ? `from ${fd(cur.s1d)}` : null].filter(Boolean).join(' · ')
-    );
-  }
-
-  if (availability.swell2) {
-    html += card('c2', 'Swell 2',
-      fh(cur.s2h),
-      [cur.s2p != null ? fp(cur.s2p) : null, cur.s2d != null ? `from ${fd(cur.s2d)}` : null].filter(Boolean).join(' · ')
-    );
-  }
-
-  if (availability.swell3) {
-    html += card('c3', 'Swell 3',
-      fh(cur.s3h),
-      [cur.s3p != null ? fp(cur.s3p) : null, cur.s3d != null ? `from ${fd(cur.s3d)}` : null].filter(Boolean).join(' · ')
-    );
-  }
-
-  if (availability.wind) {
-    html += card('cw', 'Wind Waves',
-      fh(cur.wwh),
-      [cur.wwp != null ? fp(cur.wwp) : null, cur.wwd != null ? `from ${degToCompass(cur.wwd)}` : null].filter(Boolean).join(' · ')
-    );
-  }
-
   html += card('', 'Wind',
     cur.windSpd != null ? `${cur.windSpd.toFixed(0)} mph` : '--',
     [
@@ -739,14 +768,87 @@ function renderConditions(d) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   LEGEND VISIBILITY
+   SWELL COMPOSITION TABLE
 ════════════════════════════════════════════════════════════════════════════ */
-function updateLegend(avail) {
-  SWELLS.forEach(s => {
-    const el = document.getElementById(s.legId);
-    if (!el) return;
-    el.classList.toggle('hidden-item', !avail[s.key]);
+function renderSwellTable(d) {
+  const { cur, availability, nowStr } = d;
+
+  // Format the "as of" time
+  const asOf = new Date(nowStr).toLocaleString('en-US', {
+    timeZone: 'UTC', hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
   });
+  document.getElementById('swellTableTime').textContent = `as of ${asOf}`;
+
+  // Build component rows: [label, color, height_ft, period_s, direction_deg]
+  const rows = [];
+
+  if (cur.s1h != null || cur.s1p != null || cur.s1d != null) {
+    rows.push({ label: 'Swell 1',    color: '#00F5FF', h: cur.s1h, p: cur.s1p, d: cur.s1d });
+  }
+  if (availability.swell2 && (cur.s2h != null || cur.s2p != null || cur.s2d != null)) {
+    rows.push({ label: 'Swell 2',    color: '#FF2D78', h: cur.s2h, p: cur.s2p, d: cur.s2d });
+  }
+  if (availability.swell3 && (cur.s3h != null || cur.s3p != null || cur.s3d != null)) {
+    rows.push({ label: 'Swell 3',    color: '#39FF14', h: cur.s3h, p: cur.s3p, d: cur.s3d });
+  }
+  if (availability.wind && (cur.wwh != null || cur.wwp != null || cur.wwd != null)) {
+    rows.push({ label: 'Wind Waves', color: '#FFD600', h: cur.wwh, p: cur.wwp, d: cur.wwd });
+  }
+
+  // Wave energy is proportional to H²; compute relative % for each component
+  const totalEnergy = rows.reduce((sum, r) => sum + (r.h != null ? r.h * r.h : 0), 0);
+
+  const fh = v => v != null ? `${v.toFixed(1)} ft` : '<span style="color:var(--muted)">--</span>';
+  const fp = v => v != null ? `${v.toFixed(0)}s`   : '<span style="color:var(--muted)">--</span>';
+  const fd = v => v != null
+    ? `${degToCompass(v)}&nbsp;<span style="color:var(--muted)">${Math.round(v)}°</span>`
+    : '<span style="color:var(--muted)">--</span>';
+
+  function energyCell(h) {
+    if (h == null || totalEnergy === 0) {
+      return `<td class="right energy-bar-cell">--</td>`;
+    }
+    const pct = Math.round((h * h / totalEnergy) * 100);
+    return `<td class="energy-bar-cell">
+      <div class="energy-bar-wrap">
+        <div class="energy-bar-bg">
+          <div class="energy-bar-fill" style="width:${pct}%;background:${rows.find(r=>r.h===h)?.color||'#fff'}"></div>
+        </div>
+        <span class="energy-pct">${pct}%</span>
+      </div>
+    </td>`;
+  }
+
+  if (rows.length === 0) {
+    document.getElementById('swellTableBody').innerHTML =
+      `<tr><td colspan="5" style="color:var(--muted);padding:12px 16px">No component data available for this location.</td></tr>`;
+    return;
+  }
+
+  const tbodyHtml = rows.map(row => {
+    const pct = (row.h != null && totalEnergy > 0)
+      ? Math.round((row.h * row.h / totalEnergy) * 100) : null;
+    const barPct = pct ?? 0;
+    return `<tr>
+      <td>
+        <span class="comp-dot" style="background:${row.color};box-shadow:0 0 6px ${row.color}"></span>
+        ${row.label}
+      </td>
+      <td>${fh(row.h)}</td>
+      <td>${fp(row.p)}</td>
+      <td>${fd(row.d)}</td>
+      <td class="energy-bar-cell">
+        <div class="energy-bar-wrap">
+          <div class="energy-bar-bg">
+            <div class="energy-bar-fill" style="width:${barPct}%;background:${row.color}"></div>
+          </div>
+          <span class="energy-pct">${pct != null ? pct + '%' : '--'}</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('swellTableBody').innerHTML = tbodyHtml;
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -760,17 +862,17 @@ function pts(times, arr) {
 function ds(label, data, color) {
   return {
     label, data,
-    borderColor:              color,
-    backgroundColor:          color + '20',
-    borderWidth:              2.5,
-    pointRadius:              0,
-    pointHoverRadius:         5,
+    borderColor:               color,
+    backgroundColor:           color + '20',
+    borderWidth:               2.5,
+    pointRadius:               0,
+    pointHoverRadius:          5,
     pointHoverBackgroundColor: color,
-    pointHoverBorderColor:    '#fff',
-    pointHoverBorderWidth:    1,
-    tension:                  0.35,
-    spanGaps:                 true,
-    fill:                     false,
+    pointHoverBorderColor:     '#fff',
+    pointHoverBorderWidth:     1,
+    tension:                   0.35,
+    spanGaps:                  true,
+    fill:                      false,
   };
 }
 
@@ -847,60 +949,42 @@ function baseOptions(nowStr, yExtra, tooltipLabel) {
 }
 
 function buildCharts(d) {
-  const { times, nowStr, availability } = d;
+  const { times, nowStr } = d;
 
   Object.values(charts).forEach(c => c && c.destroy());
 
-  // ── Height chart ───────────────────────────────────────────────────────────
-  const hDs = [];
-  if (availability.total)  hDs.push(ds('Total Wave', pts(times, d.wvht), '#FFFFFF'));
-  if (availability.swell1) hDs.push(ds('Swell 1',    pts(times, d.s1h),  '#00F5FF'));
-  if (availability.swell2) hDs.push(ds('Swell 2',    pts(times, d.s2h),  '#FF2D78'));
-  if (availability.swell3) hDs.push(ds('Swell 3',    pts(times, d.s3h),  '#39FF14'));
-  if (availability.wind)   hDs.push(ds('Wind Waves', pts(times, d.wwh),  '#FFD600'));
-
+  // ── Height chart (total wave only) ────────────────────────────────────────
   charts.h = new Chart(document.getElementById('hChart'), {
-    type: 'line', data: { datasets: hDs },
+    type: 'line',
+    data: { datasets: [ds('Wave Height', pts(times, d.wvht), '#FFFFFF')] },
     options: baseOptions(nowStr, {
       beginAtZero: true,
       ticks: { color: '#9966cc', callback: v => `${v} ft` },
     }, ctx => {
       const v = ctx.raw?.y;
-      return v == null ? null : `${ctx.dataset.label}: ${v.toFixed(1)} ft`;
+      return v == null ? null : `${v.toFixed(1)} ft`;
     }),
   });
 
-  // ── Period chart ───────────────────────────────────────────────────────────
-  const pDs = [];
-  if (availability.total)  pDs.push(ds('Total Wave', pts(times, d.wvp), '#FFFFFF'));
-  if (availability.swell1) pDs.push(ds('Swell 1',    pts(times, d.s1p), '#00F5FF'));
-  if (availability.swell2) pDs.push(ds('Swell 2',    pts(times, d.s2p), '#FF2D78'));
-  if (availability.swell3) pDs.push(ds('Swell 3',    pts(times, d.s3p), '#39FF14'));
-  if (availability.wind)   pDs.push(ds('Wind Waves', pts(times, d.wwp), '#FFD600'));
-
+  // ── Period chart (total wave only) ────────────────────────────────────────
   charts.p = new Chart(document.getElementById('pChart'), {
-    type: 'line', data: { datasets: pDs },
+    type: 'line',
+    data: { datasets: [ds('Wave Period', pts(times, d.wvp), '#00F5FF')] },
     options: baseOptions(nowStr, {
       beginAtZero: true,
       ticks: { color: '#9966cc', callback: v => `${v}s` },
     }, ctx => {
       const v = ctx.raw?.y;
-      return v == null ? null : `${ctx.dataset.label}: ${v.toFixed(0)}s`;
+      return v == null ? null : `${v.toFixed(0)}s`;
     }),
   });
 
-  // ── Direction chart ────────────────────────────────────────────────────────
-  const dDs = [];
-  if (availability.total)  dDs.push(ds('Total Wave', pts(times, d.wvd), '#FFFFFF'));
-  if (availability.swell1) dDs.push(ds('Swell 1',    pts(times, d.s1d), '#00F5FF'));
-  if (availability.swell2) dDs.push(ds('Swell 2',    pts(times, d.s2d), '#FF2D78'));
-  if (availability.swell3) dDs.push(ds('Swell 3',    pts(times, d.s3d), '#39FF14'));
-  if (availability.wind)   dDs.push(ds('Wind Waves', pts(times, d.wwd), '#FFD600'));
-
+  // ── Direction chart (total wave only) ─────────────────────────────────────
   const COMPASS = { 0:'N', 45:'NE', 90:'E', 135:'SE', 180:'S', 225:'SW', 270:'W', 315:'NW', 360:'N' };
 
   charts.d = new Chart(document.getElementById('dChart'), {
-    type: 'line', data: { datasets: dDs },
+    type: 'line',
+    data: { datasets: [ds('Wave Direction', pts(times, d.wvd), '#FFD600')] },
     options: baseOptions(nowStr, {
       min: 0, max: 360,
       ticks: {
@@ -911,7 +995,7 @@ function buildCharts(d) {
       const v = ctx.raw?.y;
       if (v == null) return null;
       const deg = Math.round(((v % 360) + 360) % 360);
-      return `${ctx.dataset.label}: ${deg}° (${degToCompass(deg)})`;
+      return `${deg}° (${degToCompass(deg)})`;
     }),
   });
 
@@ -993,8 +1077,12 @@ async function load() {
     const data = process(marine, weather);
 
     renderConditions(data);
-    updateLegend(data.availability);
+    renderSwellTable(data);
     buildCharts(data);
+
+    // Update chart subtitle to reflect actual history available
+    const histLabel = data.hasPast ? `${PAST_DAYS} days history + ` : '';
+    document.getElementById('hUnit').textContent = `feet (ft) · ${histLabel}forecast`;
 
     setStatus(true, `${buoyName} · Updated ${new Date().toLocaleTimeString()}`);
   } catch (err) {
