@@ -18,6 +18,7 @@
       --text:      #f0e6ff;
       --muted:     #9966cc;
       --accent:    #FF2D78;
+      --ct:        #FFFFFF;
       --c1:        #00F5FF;
       --c2:        #FF2D78;
       --c3:        #39FF14;
@@ -203,6 +204,7 @@
     }
     .cond-card:hover { box-shadow: 0 0 16px rgba(180,100,255,0.12); }
 
+    .cond-card.ct { border-left-color: #FFFFFF; box-shadow: -2px 0 14px rgba(255,255,255,0.18); }
     .cond-card.c1 { border-left-color: #00F5FF; box-shadow: -2px 0 14px rgba(0,245,255,0.18); }
     .cond-card.c2 { border-left-color: #FF2D78; box-shadow: -2px 0 14px rgba(255,45,120,0.18); }
     .cond-card.c3 { border-left-color: #39FF14; box-shadow: -2px 0 14px rgba(57,255,20,0.18); }
@@ -264,6 +266,7 @@
       flex-shrink: 0;
     }
     /* Neon glow on each swatch */
+    #legT .legend-swatch { box-shadow: 0 0 6px #FFFFFF; }
     #leg1 .legend-swatch { box-shadow: 0 0 6px #00F5FF; }
     #leg2 .legend-swatch { box-shadow: 0 0 6px #FF2D78; }
     #leg3 .legend-swatch { box-shadow: 0 0 6px #39FF14; }
@@ -411,6 +414,9 @@
   <!-- Shared legend -->
   <div class="legend-bar" id="legendBar">
     <span class="legend-hd">Legend</span>
+    <span class="legend-item" id="legT">
+      <span class="legend-swatch" style="background:var(--ct)"></span>Total Wave
+    </span>
     <span class="legend-item" id="leg1">
       <span class="legend-swatch" style="background:var(--c1)"></span>Swell 1
     </span>
@@ -486,6 +492,7 @@ const LOCATIONS = {
 };
 
 const SWELLS = [
+  { key: 'total',  label: 'Total Wave', color: '#FFFFFF', legId: 'legT' },
   { key: 'swell1', label: 'Swell 1',    color: '#00F5FF', legId: 'leg1' },
   { key: 'swell2', label: 'Swell 2',    color: '#FF2D78', legId: 'leg2' },
   { key: 'swell3', label: 'Swell 3',    color: '#39FF14', legId: 'leg3' },
@@ -594,6 +601,7 @@ function process(marine, weather) {
   const wvp = m.wave_period          || null;
 
   // Direction series (degrees, no conversion)
+  const wvd = m.wave_direction         || null;
   const s1d = m.swell_wave_direction   || null;
   const s2d = m.swell_wave_direction_2 || null;
   const s3d = m.swell_wave_direction_3 || null;
@@ -609,6 +617,7 @@ function process(marine, weather) {
   const cur = idx => ({
     wvht:    wvht?.[idx],
     wvp:     wvp?.[idx],
+    wvd:     wvd?.[idx],
     s1h:     s1h?.[idx],  s1p: s1p?.[idx],  s1d: s1d?.[idx],
     s2h:     s2h?.[idx],  s2p: s2p?.[idx],  s2d: s2d?.[idx],
     s3h:     s3h?.[idx],  s3p: s3p?.[idx],  s3d: s3d?.[idx],
@@ -625,10 +634,11 @@ function process(marine, weather) {
     nowStr: utcTime(times[ni]),
     s1h, s2h, s3h, wwh, wvht,
     s1p, s2p, s3p, wwp, wvp,
-    s1d, s2d, s3d, wwd,
+    s1d, s2d, s3d, wwd, wvd,
     sst, airTemp, windSpd, windDir, windGst,
     cur: cur(ni),
     availability: {
+      total:  hasData(wvht) || hasData(wvp) || hasData(wvd),
       swell1: hasData(s1h) || hasData(s1p) || hasData(s1d),
       swell2: hasData(s2h) || hasData(s2p) || hasData(s2d),
       swell3: hasData(s3h) || hasData(s3p) || hasData(s3d),
@@ -658,9 +668,9 @@ function renderConditions(d) {
   let html = '';
 
   // Total
-  html += card('', 'Total Wave Height',
+  html += card('ct', 'Total Wave',
     fh(cur.wvht),
-    cur.wvp != null ? `Avg period ${cur.wvp.toFixed(0)}s` : ''
+    [cur.wvp != null ? fp(cur.wvp) : null, cur.wvd != null ? `from ${fd(cur.wvd)}` : null].filter(Boolean).join(' · ')
   );
 
   // Swell 1
@@ -851,6 +861,7 @@ function buildCharts(d) {
 
   // ── Height chart ──────────────────────────────────────────────────────────
   const hDatasets = [];
+  if (availability.total)  hDatasets.push(ds('Total Wave', pts(times, d.wvht), '#FFFFFF'));
   if (availability.swell1) hDatasets.push(ds('Swell 1',    pts(times, d.s1h), '#00F5FF'));
   if (availability.swell2) hDatasets.push(ds('Swell 2',    pts(times, d.s2h), '#FF2D78'));
   if (availability.swell3) hDatasets.push(ds('Swell 3',    pts(times, d.s3h), '#39FF14'));
@@ -872,6 +883,7 @@ function buildCharts(d) {
 
   // ── Period chart ──────────────────────────────────────────────────────────
   const pDatasets = [];
+  if (availability.total)  pDatasets.push(ds('Total Wave', pts(times, d.wvp), '#FFFFFF'));
   if (availability.swell1) pDatasets.push(ds('Swell 1',    pts(times, d.s1p), '#00F5FF'));
   if (availability.swell2) pDatasets.push(ds('Swell 2',    pts(times, d.s2p), '#FF2D78'));
   if (availability.swell3) pDatasets.push(ds('Swell 3',    pts(times, d.s3p), '#39FF14'));
@@ -893,6 +905,7 @@ function buildCharts(d) {
 
   // ── Direction chart ───────────────────────────────────────────────────────
   const dDatasets = [];
+  if (availability.total)  dDatasets.push(ds('Total Wave', pts(times, d.wvd), '#FFFFFF'));
   if (availability.swell1) dDatasets.push(ds('Swell 1',    pts(times, d.s1d), '#00F5FF'));
   if (availability.swell2) dDatasets.push(ds('Swell 2',    pts(times, d.s2d), '#FF2D78'));
   if (availability.swell3) dDatasets.push(ds('Swell 3',    pts(times, d.s3d), '#39FF14'));
