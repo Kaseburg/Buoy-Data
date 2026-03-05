@@ -436,7 +436,7 @@
       <span class="legend-swatch" style="background:var(--cw)"></span>Wind Waves
     </span>
     <span style="margin-left:auto; font-size:11px; color:var(--muted)">
-      Times in UTC &nbsp;·&nbsp; Past 2 days + forecast
+      Times in UTC &nbsp;·&nbsp; Forecast
     </span>
   </div>
 
@@ -562,14 +562,8 @@ function nowIndex(times) {
    API
 ════════════════════════════════════════════════════════════════════════════ */
 async function fetchMarine(lat, lon, forecastDays) {
-  // Marine API does not support past_days; use explicit start/end dates instead
-  const now   = new Date();
-  const start = new Date(now);
-  start.setUTCDate(start.getUTCDate() - PAST_DAYS);
-  const end   = new Date(now);
-  end.setUTCDate(end.getUTCDate() + forecastDays);
-  const fmt   = d => d.toISOString().slice(0, 10);
-
+  // Marine API only supports forecast data (no past_days / historical)
+  // Build URL with literal commas to avoid URLSearchParams encoding issues
   const waveVars = [
     'wave_height','wave_period','wave_direction',
     'swell_wave_height','swell_wave_period','swell_wave_direction',
@@ -579,17 +573,11 @@ async function fetchMarine(lat, lon, forecastDays) {
   ];
 
   function buildUrl(vars) {
-    const u = new URL(MARINE_URL);
-    u.searchParams.set('latitude',   lat);
-    u.searchParams.set('longitude',  lon);
-    u.searchParams.set('hourly',     vars.join(','));
-    u.searchParams.set('start_date', fmt(start));
-    u.searchParams.set('end_date',   fmt(end));
-    u.searchParams.set('timezone',   'GMT');
-    return u;
+    return `${MARINE_URL}?latitude=${lat}&longitude=${lon}` +
+           `&hourly=${vars.join(',')}&forecast_days=${forecastDays}&timezone=GMT`;
   }
 
-  // Try with SST first; fall back without it if the API rejects it
+  // Try with SST; fall back without it
   let r = await fetch(buildUrl([...waveVars, 'sea_surface_temperature']));
   if (!r.ok) {
     r = await fetch(buildUrl(waveVars));
