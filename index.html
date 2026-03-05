@@ -564,12 +564,16 @@ function nowIndex(times) {
 async function fetchMarine(lat, lon, forecastDays) {
   // Marine API only supports forecast data (no past_days / historical)
   // Build URL with literal commas to avoid URLSearchParams encoding issues
-  const waveVars = [
+  // swell_wave_height_2/_3 are only available for some locations/models
+  const base = [
     'wave_height','wave_period','wave_direction',
     'swell_wave_height','swell_wave_period','swell_wave_direction',
+    'wind_wave_height','wind_wave_period','wind_wave_direction',
+  ];
+  const extended = [
+    ...base,
     'swell_wave_height_2','swell_wave_period_2','swell_wave_direction_2',
     'swell_wave_height_3','swell_wave_period_3','swell_wave_direction_3',
-    'wind_wave_height','wind_wave_period','wind_wave_direction',
   ];
 
   function buildUrl(vars) {
@@ -577,14 +581,14 @@ async function fetchMarine(lat, lon, forecastDays) {
            `&hourly=${vars.join(',')}&forecast_days=${forecastDays}&timezone=GMT`;
   }
 
-  // Try with SST; fall back without it
-  let r = await fetch(buildUrl([...waveVars, 'sea_surface_temperature']));
+  // Try extended vars (with swell 2/3 + SST), fall back progressively
+  let r = await fetch(buildUrl([...extended, 'sea_surface_temperature']));
+  if (!r.ok) r = await fetch(buildUrl(extended));
+  if (!r.ok) r = await fetch(buildUrl([...base, 'sea_surface_temperature']));
+  if (!r.ok) r = await fetch(buildUrl(base));
   if (!r.ok) {
-    r = await fetch(buildUrl(waveVars));
-    if (!r.ok) {
-      const errText = await r.text().catch(() => '');
-      throw new Error(`Marine API ${r.status}: ${errText}`);
-    }
+    const errText = await r.text().catch(() => '');
+    throw new Error(`Marine API ${r.status}: ${errText}`);
   }
   return r.json();
 }
